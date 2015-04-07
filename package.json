@@ -11,10 +11,21 @@
     "mocha": "^2.2.1"
   },
   "keywords": [],
-  "author": {
-    "name": "Jari Pennanen",
-    "email": "ciantic@oksidi.com"
-  },
+  "author": "Jari Pennanen <ciantic@oksidi.com>",
   "license": "MIT",
-  "readmeFilename": "README.md"
+  "main": "index.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Ciantic/model-validation"
+  },
+  "bugs": {
+    "url": "https://github.com/Ciantic/model-validation/issues"
+  },
+  "homepage": "https://github.com/Ciantic/model-validation"
 }
