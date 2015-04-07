@@ -9,12 +9,11 @@ export type errorMessages = {
 }
 
 export type validationFunction =
-    ((input: any, cleaned: any, errors: errorMessages) => ValidationResult<any> | any) |
-    Validator;
+    ((input: any, cleaned: any, errors: errorMessages) => any);
 
 export type validationDefinition =
-    validationFunction |
-    { [name: string] : validationFunction };
+    validationFunction | Validator |
+    { [name: string] : (validationFunction | Validator) };
 
 export type fieldValidators = {
     [name: string] : validationDefinition
@@ -26,8 +25,8 @@ export interface ValidationResult<T> {
     errors: errorMessages
 }
 
-export function required(input: any, isNot: any = null): any {
-    if (!input) {
+export function required(input: any, isNot: any = false): any {
+    if (input == isNot) {
         throw "This field is required";
     }
     return input;
@@ -46,19 +45,57 @@ export function float(input: any, def: number = 0.0): number {
 }
 
 export interface Validator {
-    validate<T>(object: T): Q.Promise<ValidationResult<T>>
+    validate<T>(value: T): Q.Promise<ValidationResult<T>>
 }
 
-function getValidator(fields: fieldValidators, fieldName: string) {
+function getValidator(fields: fieldValidators, fieldName: string, object: any): Validator {
     var validFunc = fields[fieldName];
     if (_.isFunction(validFunc)) {
-        return validFunc;
+        return new FuncValidator(<validationFunction> validFunc, fieldName, object);
     } else if (_.isPlainObject(validFunc)) {
         return new ObjectValidator(<{ [name: string] : validationFunction }> validFunc);
     } else if (_.isArray(validFunc)) {
         return new ArrayValidator(validFunc[0]);
+    } else if (_.isObject(validFunc) && "validate" in validFunc) {
+        return <Validator> validFunc;
     }
     throw "Validator is not defined for this field";
+}
+
+export class FuncValidator implements Validator {
+    fieldName: string
+    func: validationFunction
+    object: any
+    constructor(func: validationFunction, fieldName: string, object: any) {
+        this.fieldName = fieldName;
+        this.func = func;
+        this.object = object;
+    }
+    
+    validate<T>(value: T): Q.Promise<ValidationResult<T>> {
+        var copy = _.cloneDeep(this.object);
+        var errors: errorMessages = {},
+            isValid = false,
+            deferred = Q.defer<ValidationResult<T>>();
+            
+        errors[this.fieldName] = [];
+        try {
+            deferred.resolve({
+                isValid : true,
+                errors : {},
+                value : this.func(value, copy, errors)
+            });
+        } catch (e) {
+            errors[this.fieldName].push("" + e);
+            deferred.resolve({
+                isValid : false,
+                errors : errors,
+                value : copy
+            });
+        }
+        
+        return deferred.promise;
+    }
 }
 
 export class ObjectValidator implements Validator {
@@ -76,7 +113,7 @@ export class ObjectValidator implements Validator {
             
         errors[fieldName] = fieldErrors;
         try {
-            var validFunc: any = getValidator(this.fields, fieldName);
+            var validFunc = getValidator(this.fields, fieldName, object);
         } catch (e) {
             fieldErrors.push(e);
             return Q.resolve({
@@ -85,57 +122,19 @@ export class ObjectValidator implements Validator {
                 errors : errors
             })
         }
-        
-        var copy = _.cloneDeep(object);
-        
-        // Probably implements validator
-        if (_.isObject(validFunc) && "validate" in validFunc) {
-            var defer = Q.defer<ValidationResult<T>>();
-            (<Validator> validFunc).validate<T>(newValue).then((res: ValidationResult<T>) => {
-                if (res.isValid) {
-                    copy[fieldName] = res.value;
-                }
-                defer.resolve({
-                    isValid : res.isValid,
-                    value : copy,
-                    errors : res.errors // TODO PREFIX ERRORS
-                });
-            });
-            return defer.promise;
-            
-        // Is probably a plain validator function
-        } else {
-            var res = object[fieldName];
-            try {
-                res = (<any>validFunc)(newValue, object, errors);
-            } catch (e) {
-                errors[fieldName].push("" + e);
+        var deferred = Q.defer<ValidationResult<T>>();
+        validFunc.validate(newValue).then((res) => {
+            var copy = _.cloneDeep(object);
+            if (res.isValid) {
+                copy[fieldName] = res.value;
             }
-        }
-        
-        // Is ValidationResult
-        if (_.isPlainObject(res) &&
-            "isValid" in res && "value" in res && "errors" in res)
-        {
-            copy[fieldName] = res.value;
-            fieldErrors.push(res.errors);
-            return Q.resolve({
+            deferred.resolve({
                 isValid : res.isValid,
                 value : copy,
-                errors : errors
+                errors : res.errors
             });
-            
-        // Is probably a cleaned and valid value
-        } else if (!errors[fieldName].length) {
-            copy[fieldName] = res;
-            delete errors[fieldName];
-            isValid = true;
-        }
-        return Q.resolve({
-            isValid : isValid,
-            value : copy,
-            errors : errors
-        });
+        })
+        return deferred.promise;
     }
     
     validate<T>(object: T): Q.Promise<ValidationResult<T>> {

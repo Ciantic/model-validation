@@ -3,8 +3,8 @@
 var _ = require("lodash");
 var Q = require("q");
 function required(input, isNot) {
-    if (isNot === void 0) { isNot = null; }
-    if (!input) {
+    if (isNot === void 0) { isNot = false; }
+    if (input == isNot) {
         throw "This field is required";
     }
     return input;
@@ -25,10 +25,10 @@ function float(input, def) {
     return parseFloat("" + input) || def;
 }
 exports.float = float;
-function getValidator(fields, fieldName) {
+function getValidator(fields, fieldName, object) {
     var validFunc = fields[fieldName];
     if (_.isFunction(validFunc)) {
-        return validFunc;
+        return new FuncValidator(validFunc, fieldName, object);
     }
     else if (_.isPlainObject(validFunc)) {
         return new ObjectValidator(validFunc);
@@ -36,8 +36,41 @@ function getValidator(fields, fieldName) {
     else if (_.isArray(validFunc)) {
         return new ArrayValidator(validFunc[0]);
     }
+    else if (_.isObject(validFunc) && "validate" in validFunc) {
+        return validFunc;
+    }
     throw "Validator is not defined for this field";
 }
+var FuncValidator = (function () {
+    function FuncValidator(func, fieldName, object) {
+        this.fieldName = fieldName;
+        this.func = func;
+        this.object = object;
+    }
+    FuncValidator.prototype.validate = function (value) {
+        var copy = _.cloneDeep(this.object);
+        var errors = {}, isValid = false, deferred = Q.defer();
+        errors[this.fieldName] = [];
+        try {
+            deferred.resolve({
+                isValid: true,
+                errors: {},
+                value: this.func(value, copy, errors)
+            });
+        }
+        catch (e) {
+            errors[this.fieldName].push("" + e);
+            deferred.resolve({
+                isValid: false,
+                errors: errors,
+                value: copy
+            });
+        }
+        return deferred.promise;
+    };
+    return FuncValidator;
+})();
+exports.FuncValidator = FuncValidator;
 var ObjectValidator = (function () {
     function ObjectValidator(fields) {
         this.fields = fields;
@@ -46,7 +79,7 @@ var ObjectValidator = (function () {
         var errors = {}, fieldErrors = [], isValid = false;
         errors[fieldName] = fieldErrors;
         try {
-            var validFunc = getValidator(this.fields, fieldName);
+            var validFunc = getValidator(this.fields, fieldName, object);
         }
         catch (e) {
             fieldErrors.push(e);
@@ -56,50 +89,19 @@ var ObjectValidator = (function () {
                 errors: errors
             });
         }
-        var copy = _.cloneDeep(object);
-        if (_.isObject(validFunc) && "validate" in validFunc) {
-            var defer = Q.defer();
-            validFunc.validate(newValue).then(function (res) {
-                if (res.isValid) {
-                    copy[fieldName] = res.value;
-                }
-                defer.resolve({
-                    isValid: res.isValid,
-                    value: copy,
-                    errors: res.errors
-                });
-            });
-            return defer.promise;
-        }
-        else {
-            var res = object[fieldName];
-            try {
-                res = validFunc(newValue, object, errors);
+        var deferred = Q.defer();
+        validFunc.validate(newValue).then(function (res) {
+            var copy = _.cloneDeep(object);
+            if (res.isValid) {
+                copy[fieldName] = res.value;
             }
-            catch (e) {
-                errors[fieldName].push("" + e);
-            }
-        }
-        if (_.isPlainObject(res) &&
-            "isValid" in res && "value" in res && "errors" in res) {
-            copy[fieldName] = res.value;
-            fieldErrors.push(res.errors);
-            return Q.resolve({
+            deferred.resolve({
                 isValid: res.isValid,
                 value: copy,
-                errors: errors
+                errors: res.errors
             });
-        }
-        else if (!errors[fieldName].length) {
-            copy[fieldName] = res;
-            delete errors[fieldName];
-            isValid = true;
-        }
-        return Q.resolve({
-            isValid: isValid,
-            value: copy,
-            errors: errors
         });
+        return deferred.promise;
     };
     ObjectValidator.prototype.validate = function (object) {
         var self = this, defer = Q.defer(), dfields = [];

@@ -42,13 +42,13 @@ describe("Validations", function() {
                 age: 0 // Note: this is invalid when validating all
             }
             return validator.validateField(obj, "name", "").then((res) => {
+                assert.deepEqual(res.errors, { "name": ["This field is required"] });
                 assert.equal(res.isValid, false);
                 assert.deepEqual(res.value, {
                     id: 123,
                     name: "John Doe",
                     age: 0
                 });
-                assert.deepEqual(res.errors, { "name": ["This field is required"] });
             })
         });
         
@@ -100,15 +100,16 @@ describe("Validations", function() {
     });
 
     describe("Nested object validation", function() {
-        var validator = new V.ObjectValidator({
-            "name": (i) => V.required(V.str(i)),
-            "address": {
-                "street": V.str,
-                "city": (i) => V.required(V.str(i))
-            }
-        });
-        
-        it("should work", function() {
+
+        it("should work with object", function() {
+            var validator = new V.ObjectValidator({
+                "name": (i) => V.required(V.str(i)),
+                "address": {
+                    "street": V.str,
+                    "city": (i) => V.required(V.str(i))
+                }
+            });
+            
             var obj = {
                 name: "John Doe",
                 address: {
@@ -132,6 +133,37 @@ describe("Validations", function() {
             });
         });
         
+        it("should work with validator", function() {
+            var validator = new V.ObjectValidator({
+                "name": (i) => V.required(V.str(i)),
+                "address": new V.ObjectValidator({
+                    "street": V.str,
+                    "city": (i) => V.required(V.str(i))
+                })
+            });
+            var obj = {
+                name: "John Doe",
+                address: {
+                    "street": "Homestreet 123",
+                    "city": "Someville"
+                }
+            };
+            return validator.validateField(obj, "address", {
+                "street": "Backalley 321",
+                "city": "Otherville"
+            }).then((res) => {
+                assert.deepEqual(res.errors, {});
+                assert.equal(res.isValid, true);
+                assert.deepEqual(res.value, {
+                    name: "John Doe",
+                    address: {
+                        "street": "Backalley 321",
+                        "city": "Otherville"
+                    }
+                });
+            });
+        });
+        /*
         it("should raise nested errors", function() {
             var obj = {
                 name: "John Doe",
@@ -149,8 +181,9 @@ describe("Validations", function() {
                 assert.deepEqual(res.value, obj);
             });
         });
+        */
     });
-    
+    /*
     describe("Array of objects validation", function() {
         var validator = new V.ArrayValidator({
             "name": (i) => V.required(V.str(i)),
@@ -174,4 +207,5 @@ describe("Validations", function() {
             });
         });
     })
+    */
 });
