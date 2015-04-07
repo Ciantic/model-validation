@@ -8,8 +8,7 @@ export type errorMessages = {
     [name: string] : string[]
 }
 
-export type validationFunction =
-    ((input: any, cleaned: any, errors: errorMessages) => any);
+export type validationFunction = (input: any, cleaned: any) => any;
 
 export type validationDefinition =
     validationFunction | Validator |
@@ -48,6 +47,29 @@ export interface Validator {
     validate<T>(value: T): Q.Promise<ValidationResult<T>>
 }
 
+export function getUsingDotArrayNotation<T>(object: T, notation: string): [T, string] {
+    var parts = notation.split("."),
+        key = parts[0];
+    _.each(parts.slice(1), (k, i) => {
+        object = object[key];
+        key = k;
+    });
+    return [object, key];
+}
+
+export function setUsingDotArrayNotation<T>(object: T, notation: string, val: any): T {
+    var o = _.cloneDeep(object),
+        object = o,
+        parts = notation.split("."),
+        key = parts[0];
+    _.each(parts.slice(1), (k, i) => {
+        object = object[key];
+        key = k;
+    });
+    object[key] = val;
+    return o;
+}
+
 function getValidator(fields: fieldValidators, fieldName: string, object: any): Validator {
     var validFunc = fields[fieldName];
     if (_.isFunction(validFunc)) {
@@ -83,7 +105,7 @@ export class FuncValidator implements Validator {
             deferred.resolve({
                 isValid : true,
                 errors : {},
-                value : this.func(value, copy, errors)
+                value : this.func(value, copy)
             });
         } catch (e) {
             errors[this.fieldName].push("" + e);
@@ -99,7 +121,7 @@ export class FuncValidator implements Validator {
 }
 
 export class ObjectValidator implements Validator {
-    fields: fieldValidators
+    public fields: fieldValidators
     constructor(fields: fieldValidators) {
         this.fields = fields;
     }
@@ -111,9 +133,11 @@ export class ObjectValidator implements Validator {
             fieldErrors: string[] = [],
             isValid = false;
             
+        var [fields, fieldName] = getUsingDotArrayNotation(this.fields, fieldName);
+            
         errors[fieldName] = fieldErrors;
         try {
-            var validFunc = getValidator(this.fields, fieldName, object);
+            var validFunc = getValidator(fields, fieldName, object);
         } catch (e) {
             fieldErrors.push(e);
             return Q.resolve({
@@ -124,13 +148,9 @@ export class ObjectValidator implements Validator {
         }
         var deferred = Q.defer<ValidationResult<T>>();
         validFunc.validate(newValue).then((res) => {
-            var copy = _.cloneDeep(object);
-            if (res.isValid) {
-                copy[fieldName] = res.value;
-            }
             deferred.resolve({
                 isValid : res.isValid,
-                value : copy,
+                value : res.isValid ? setUsingDotArrayNotation(object, fieldName, res.value) : object,
                 errors : res.errors
             });
         })

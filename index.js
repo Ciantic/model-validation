@@ -25,6 +25,25 @@ function float(input, def) {
     return parseFloat("" + input) || def;
 }
 exports.float = float;
+function getUsingDotArrayNotation(object, notation) {
+    var parts = notation.split("."), key = parts[0];
+    _.each(parts.slice(1), function (k, i) {
+        object = object[key];
+        key = k;
+    });
+    return [object, key];
+}
+exports.getUsingDotArrayNotation = getUsingDotArrayNotation;
+function setUsingDotArrayNotation(object, notation, val) {
+    var o = _.cloneDeep(object), object = o, parts = notation.split("."), key = parts[0];
+    _.each(parts.slice(1), function (k, i) {
+        object = object[key];
+        key = k;
+    });
+    object[key] = val;
+    return o;
+}
+exports.setUsingDotArrayNotation = setUsingDotArrayNotation;
 function getValidator(fields, fieldName, object) {
     var validFunc = fields[fieldName];
     if (_.isFunction(validFunc)) {
@@ -55,7 +74,7 @@ var FuncValidator = (function () {
             deferred.resolve({
                 isValid: true,
                 errors: {},
-                value: this.func(value, copy, errors)
+                value: this.func(value, copy)
             });
         }
         catch (e) {
@@ -77,9 +96,10 @@ var ObjectValidator = (function () {
     }
     ObjectValidator.prototype.validateField = function (object, fieldName, newValue) {
         var errors = {}, fieldErrors = [], isValid = false;
+        var _a = getUsingDotArrayNotation(this.fields, fieldName), fields = _a[0], fieldName = _a[1];
         errors[fieldName] = fieldErrors;
         try {
-            var validFunc = getValidator(this.fields, fieldName, object);
+            var validFunc = getValidator(fields, fieldName, object);
         }
         catch (e) {
             fieldErrors.push(e);
@@ -91,13 +111,9 @@ var ObjectValidator = (function () {
         }
         var deferred = Q.defer();
         validFunc.validate(newValue).then(function (res) {
-            var copy = _.cloneDeep(object);
-            if (res.isValid) {
-                copy[fieldName] = res.value;
-            }
             deferred.resolve({
                 isValid: res.isValid,
-                value: copy,
+                value: res.isValid ? setUsingDotArrayNotation(object, fieldName, res.value) : object,
                 errors: res.errors
             });
         });
