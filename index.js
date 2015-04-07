@@ -1,5 +1,5 @@
 /// <reference path="typings/lodash/lodash.d.ts" />
-/// <reference path="typings/when/when.d.ts" />
+/// <reference path="typings/q/Q.d.ts" />
 var _ = require("lodash");
 var Q = require("q");
 function required(input, isNot) {

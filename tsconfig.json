@@ -17,7 +17,6 @@
         "./typings/assert/assert.d.ts",
         "./typings/lodash/lodash.d.ts",
         "./typings/mocha/mocha.d.ts",
-        "./typings/q/Q.d.ts",
-        "./typings/when/when.d.ts"
+        "./typings/q/Q.d.ts"
     ]
 }

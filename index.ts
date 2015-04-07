@@ -1,5 +1,5 @@
 /// <reference path="typings/lodash/lodash.d.ts" />
-/// <reference path="typings/when/when.d.ts" />
+/// <reference path="typings/q/Q.d.ts" />
 
 import _ = require("lodash");
 import Q = require("q");
