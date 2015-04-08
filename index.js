@@ -26,26 +26,41 @@ function float(input, def) {
 }
 exports.float = float;
 function getUsingDotArrayNotation(object, notation) {
-    var parts = notation.split("."), key = parts[0];
-    _.each(parts.slice(1), function (k, i) {
-        object = object[key];
-        key = k;
-    });
-    return [object, key];
+    var key = "", objectTrail = "", fullTrail = "";
+    for (var i = 0; i < notation.length; i++) {
+        var char = notation[i], next = notation.length > i ? notation[i + 1] : null;
+        fullTrail += char;
+        if (char !== ".") {
+            objectTrail += char;
+        }
+        if (next === ".") {
+            object = object[objectTrail];
+            objectTrail = "";
+        }
+    }
+    key = objectTrail;
+    return [object[key], key, fullTrail.slice(0, -key.length)];
 }
 exports.getUsingDotArrayNotation = getUsingDotArrayNotation;
 function setUsingDotArrayNotation(object, notation, val) {
-    var o = _.cloneDeep(object), object = o, parts = notation.split("."), key = parts[0];
-    _.each(parts.slice(1), function (k, i) {
-        object = object[key];
-        key = k;
-    });
-    object[key] = val;
+    var o = _.cloneDeep(object), mutator = o, key = "", objectTrail = "";
+    for (var i = 0; i < notation.length; i++) {
+        var char = notation[i], next = notation.length > i ? notation[i + 1] : null;
+        if (char !== ".") {
+            objectTrail += char;
+        }
+        if (next === ".") {
+            mutator = mutator[objectTrail];
+            objectTrail = "";
+        }
+        if (i === notation.length - 1) {
+            mutator[objectTrail] = val;
+        }
+    }
     return o;
 }
 exports.setUsingDotArrayNotation = setUsingDotArrayNotation;
-function getValidator(fields, fieldName, object) {
-    var validFunc = fields[fieldName];
+function getValidator(validFunc, fieldName, object) {
     if (_.isFunction(validFunc)) {
         return new FuncValidator(validFunc, fieldName, object);
     }
@@ -95,14 +110,13 @@ var ObjectValidator = (function () {
         this.fields = fields;
     }
     ObjectValidator.prototype.validateField = function (object, fieldName, newValue) {
-        var errors = {}, fieldErrors = [], isValid = false;
-        var _a = getUsingDotArrayNotation(this.fields, fieldName), fields = _a[0], fieldName = _a[1];
-        errors[fieldName] = fieldErrors;
+        var _a = getUsingDotArrayNotation(this.fields, fieldName), validFuncCandidate = _a[0], getFieldName = _a[1], getFieldPath = _a[2];
         try {
-            var validFunc = getValidator(fields, fieldName, object);
+            var validFunc = getValidator(validFuncCandidate, fieldName, object);
         }
         catch (e) {
-            fieldErrors.push(e);
+            var errors = {};
+            errors[fieldName] = [e];
             return Q.resolve({
                 isValid: false,
                 value: object,
@@ -111,6 +125,10 @@ var ObjectValidator = (function () {
         }
         var deferred = Q.defer();
         validFunc.validate(newValue).then(function (res) {
+            var fieldErrors = {};
+            _.each(res.errors, function (v, k) {
+                fieldErrors[getFieldPath + k] = v;
+            });
             deferred.resolve({
                 isValid: res.isValid,
                 value: res.isValid ? setUsingDotArrayNotation(object, fieldName, res.value) : object,

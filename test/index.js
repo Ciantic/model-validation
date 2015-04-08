@@ -12,13 +12,13 @@ describe("Utils", function () {
         }
     };
     it("get using without dots should work", function () {
-        assert.deepEqual(V.getUsingDotArrayNotation(obj, "name"), [obj, "name"]);
+        assert.deepEqual(V.getUsingDotArrayNotation(obj, "name"), ["John Doe", "name", ""]);
     });
     it("get using dot notation should work", function () {
-        assert.deepEqual(V.getUsingDotArrayNotation(obj, "address.city"), [{
-                "street": "Homestreet 123",
-                "city": "Someville"
-            }, "city"]);
+        assert.deepEqual(V.getUsingDotArrayNotation(obj, "address.city"), ["Someville", "city", "address."]);
+    });
+    it("get using very deep dot notation should work", function () {
+        assert.deepEqual(V.getUsingDotArrayNotation({ 'a': { 'b': { 'c': { 'd': 42 } } } }, "a.b.c.d"), [42, "d", "a.b.c."]);
     });
     it("set using without dots should work", function () {
         var copy = V.setUsingDotArrayNotation(obj, "name", "Not a Dummy");

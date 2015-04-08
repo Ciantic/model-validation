@@ -47,31 +47,50 @@ export interface Validator {
     validate<T>(value: T): Q.Promise<ValidationResult<T>>
 }
 
-export function getUsingDotArrayNotation<T>(object: T, notation: string): [T, string] {
-    var parts = notation.split("."),
-        key = parts[0];
-    _.each(parts.slice(1), (k, i) => {
-        object = object[key];
-        key = k;
-    });
-    return [object, key];
+export function getUsingDotArrayNotation<T>(object: T, notation: string): [T, string, string] {
+    var key = "",
+        objectTrail = "",
+        fullTrail = "";
+    for (var i = 0; i < notation.length; i++) {
+        var char = notation[i],
+            next = notation.length > i ? notation[i + 1] : null;
+        fullTrail += char;
+        if (char !== ".") {
+            objectTrail += char;
+        }
+        if (next === ".") {
+            object = object[objectTrail];
+            objectTrail = "";
+        }
+    }
+    key = objectTrail;
+    return [object[key], key, fullTrail.slice(0, -key.length)];
 }
 
 export function setUsingDotArrayNotation<T>(object: T, notation: string, val: any): T {
     var o = _.cloneDeep(object),
-        object = o,
-        parts = notation.split("."),
-        key = parts[0];
-    _.each(parts.slice(1), (k, i) => {
-        object = object[key];
-        key = k;
-    });
-    object[key] = val;
+        mutator = o,
+        key = "",
+        objectTrail = "";
+    for (var i = 0; i < notation.length; i++) {
+        var char = notation[i],
+            next = notation.length > i ? notation[i + 1] : null;
+        if (char !== ".") {
+            objectTrail += char;
+        }
+        if (next === ".") {
+            mutator = mutator[objectTrail];
+            objectTrail = "";
+        }
+        if (i === notation.length - 1) {
+            mutator[objectTrail] = val;
+        }
+    }
+    // Freeze o here?
     return o;
 }
 
-function getValidator(fields: fieldValidators, fieldName: string, object: any): Validator {
-    var validFunc = fields[fieldName];
+function getValidator(validFunc: any, fieldName: string, object: any): Validator {
     if (_.isFunction(validFunc)) {
         return new FuncValidator(<validationFunction> validFunc, fieldName, object);
     } else if (_.isPlainObject(validFunc)) {
@@ -129,25 +148,26 @@ export class ObjectValidator implements Validator {
     validateField<T>(object: T, fieldName: string, newValue: any):
         Q.Promise<ValidationResult<T>>
     {
-        var errors: errorMessages = {},
-            fieldErrors: string[] = [],
-            isValid = false;
-            
-        var [fields, fieldName] = getUsingDotArrayNotation(this.fields, fieldName);
-            
-        errors[fieldName] = fieldErrors;
+        var [validFuncCandidate, getFieldName, getFieldPath] = getUsingDotArrayNotation(this.fields, fieldName);
+        //console.log("get", fieldName, getFieldName, getFieldPath);
         try {
-            var validFunc = getValidator(fields, fieldName, object);
+            var validFunc = getValidator(validFuncCandidate, fieldName, object);
         } catch (e) {
-            fieldErrors.push(e);
+            var errors: errorMessages = {};
+            errors[fieldName] = [e];
             return Q.resolve({
                 isValid : false,
                 value : object,
                 errors : errors
-            })
+            });
         }
         var deferred = Q.defer<ValidationResult<T>>();
         validFunc.validate(newValue).then((res) => {
+            var fieldErrors: errorMessages = {};
+            _.each(res.errors, (v, k) => {
+                fieldErrors[getFieldPath + k] = v;
+            });
+            //console.log("res.errors", res.errors, fieldErrors);
             deferred.resolve({
                 isValid : res.isValid,
                 value : res.isValid ? setUsingDotArrayNotation(object, fieldName, res.value) : object,
