@@ -49,46 +49,76 @@ export interface Validator {
     validate<T>(value: T): Q.Promise<ValidationResult<T>>
 }
 
-export function getUsingDotArrayNotation<T>(object: T, notation: string): [T, string, string] {
-    var key = "",
+export function getUsingDotArrayNotation(object: any, notation: string): [T, string, string] {
+    var objectGetter = object,
         objectTrail = "",
-        fullTrail = "";
+        arrayTrail = "",
+        inArray = false;
     for (var i = 0; i < notation.length; i++) {
         var char = notation[i],
-            next = notation.length > i ? notation[i + 1] : null;
-        fullTrail += char;
+            next = notation[i + 1];
+        if (char === "[") {
+            arrayTrail = "";
+            inArray = true;
+            continue;
+        } else if (char === "]") {
+            inArray = false;
+            objectGetter = objectGetter[parseInt(arrayTrail)];
+            objectTrail = "";
+            continue;
+        }
+        if (inArray) {
+            arrayTrail += char;
+            continue;
+        }
         if (char !== ".") {
             objectTrail += char;
         }
-        if (next === ".") {
-            object = object[objectTrail];
+        if (next === "." || typeof next === "undefined") {
+            objectGetter = objectGetter[objectTrail];
             objectTrail = "";
         }
     }
-    key = objectTrail;
-    return object[key];
+    return objectGetter;
 }
 
 export function setUsingDotArrayNotation<T>(object: T, notation: string, val: any): T {
     var o = _.cloneDeep(object),
-        mutator = o,
-        key = "",
-        objectTrail = "";
+        objectSetter = o,
+        objectTrail = "",
+        arrayTrail = "",
+        inArray = false;
+        
     for (var i = 0; i < notation.length; i++) {
         var char = notation[i],
-            next = notation.length > i ? notation[i + 1] : null;
+            next = notation[i + 1];
+        if (char === "[") {
+            inArray = true;
+            continue;
+        } else if (char === "]") {
+            inArray = false;
+            if (typeof next === "undefined") {
+                objectSetter[parseInt(arrayTrail)] = val;
+            }
+            objectSetter = objectSetter[parseInt(arrayTrail)];
+            objectTrail = "";
+            continue;
+        }
+        if (inArray) {
+            arrayTrail += char;
+            continue;
+        }
         if (char !== ".") {
             objectTrail += char;
         }
+        if (typeof next === "undefined") {
+            objectSetter[objectTrail] = val;
+        }
         if (next === ".") {
-            mutator = mutator[objectTrail];
+            objectSetter = objectSetter[objectTrail];
             objectTrail = "";
         }
-        if (i === notation.length - 1) {
-            mutator[objectTrail] = val;
-        }
     }
-    // Freeze o here?
     return o;
 }
 
@@ -103,6 +133,10 @@ function getValidator(validFunc: any, parent: any): Validator {
         return <Validator> validFunc;
     }
     throw "Validator is not defined for this field";
+}
+
+export function validate<T>(value: T): Q.Promise<ValidationResult<T>>  {
+    return null;
 }
 
 export class FuncValidator implements Validator {
@@ -179,9 +213,8 @@ export class ObjectValidator implements Validator {
     validate<T>(object: T): Q.Promise<ValidationResult<T>> {
         var self = this,
             defer = Q.defer<ValidationResult<T>>(),
-            dfields: Q.Promise<ValidationResult<T>>[] = [];
-            
-        var copy = _.cloneDeep(object),
+            dfields: Q.Promise<ValidationResult<T>>[] = [],
+            copy = _.cloneDeep(object),
             errors: errorMessages = {};
         
         _.each(object, function(v, k) {
@@ -197,8 +230,8 @@ export class ObjectValidator implements Validator {
             });
         });
         
-        // Assumes Q.all promise is resolved after all individual promise
-        // callbacks has resolved
+        // Error array filling assumes Q.all promise is resolved after all
+        // individual promise callbacks has resolved
         Q.all(dfields).then((resz) => {
             var isValid = true;
             _.each(resz, (res) => {

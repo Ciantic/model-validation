@@ -26,35 +26,65 @@ function float(input, def) {
 }
 exports.float = float;
 function getUsingDotArrayNotation(object, notation) {
-    var key = "", objectTrail = "", fullTrail = "";
+    var objectGetter = object, objectTrail = "", arrayTrail = "", inArray = false;
     for (var i = 0; i < notation.length; i++) {
-        var char = notation[i], next = notation.length > i ? notation[i + 1] : null;
-        fullTrail += char;
+        var char = notation[i], next = notation[i + 1];
+        if (char === "[") {
+            arrayTrail = "";
+            inArray = true;
+            continue;
+        }
+        else if (char === "]") {
+            inArray = false;
+            objectGetter = objectGetter[parseInt(arrayTrail)];
+            objectTrail = "";
+            continue;
+        }
+        if (inArray) {
+            arrayTrail += char;
+            continue;
+        }
         if (char !== ".") {
             objectTrail += char;
         }
-        if (next === ".") {
-            object = object[objectTrail];
+        if (next === "." || typeof next === "undefined") {
+            objectGetter = objectGetter[objectTrail];
             objectTrail = "";
         }
     }
-    key = objectTrail;
-    return object[key];
+    return objectGetter;
 }
 exports.getUsingDotArrayNotation = getUsingDotArrayNotation;
 function setUsingDotArrayNotation(object, notation, val) {
-    var o = _.cloneDeep(object), mutator = o, key = "", objectTrail = "";
+    var o = _.cloneDeep(object), objectSetter = o, objectTrail = "", arrayTrail = "", inArray = false;
     for (var i = 0; i < notation.length; i++) {
-        var char = notation[i], next = notation.length > i ? notation[i + 1] : null;
+        var char = notation[i], next = notation[i + 1];
+        if (char === "[") {
+            inArray = true;
+            continue;
+        }
+        else if (char === "]") {
+            inArray = false;
+            if (typeof next === "undefined") {
+                objectSetter[parseInt(arrayTrail)] = val;
+            }
+            objectSetter = objectSetter[parseInt(arrayTrail)];
+            objectTrail = "";
+            continue;
+        }
+        if (inArray) {
+            arrayTrail += char;
+            continue;
+        }
         if (char !== ".") {
             objectTrail += char;
         }
-        if (next === ".") {
-            mutator = mutator[objectTrail];
-            objectTrail = "";
+        if (typeof next === "undefined") {
+            objectSetter[objectTrail] = val;
         }
-        if (i === notation.length - 1) {
-            mutator[objectTrail] = val;
+        if (next === ".") {
+            objectSetter = objectSetter[objectTrail];
+            objectTrail = "";
         }
     }
     return o;
@@ -75,6 +105,10 @@ function getValidator(validFunc, parent) {
     }
     throw "Validator is not defined for this field";
 }
+function validate(value) {
+    return null;
+}
+exports.validate = validate;
 var FuncValidator = (function () {
     function FuncValidator(func, parent) {
         this.func = func;
@@ -137,8 +171,7 @@ var ObjectValidator = (function () {
         return deferred.promise;
     };
     ObjectValidator.prototype.validate = function (object) {
-        var self = this, defer = Q.defer(), dfields = [];
-        var copy = _.cloneDeep(object), errors = {};
+        var self = this, defer = Q.defer(), dfields = [], copy = _.cloneDeep(object), errors = {};
         _.each(object, function (v, k) {
             var p = self.validateField(object, k, v);
             dfields.push(p);
