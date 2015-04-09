@@ -1,3 +1,7 @@
+/***
+ * Copyright (C) Jari Pennanen, 2015
+ * See LICENSE for copying
+ */
 /// <reference path="typings/lodash/lodash.d.ts" />
 /// <reference path="typings/q/Q.d.ts" />
 
@@ -49,7 +53,7 @@ export interface Validator {
     validate<T>(value: T): Q.Promise<ValidationResult<T>>
 }
 
-export function getUsingDotArrayNotation(object: any, notation: string): [T, string, string] {
+export function getUsingDotArrayNotation(object: any, notation: string): any {
     var objectGetter = object,
         objectTrail = "",
         arrayTrail = "",
@@ -113,12 +117,12 @@ export function setUsingDotArrayNotation<T>(object: T, notation: string, val: an
         }
         if (typeof next === "undefined") {
             objectSetter[objectTrail] = val;
-        }
-        if (next === ".") {
+        } else if (next === ".") {
             objectSetter = objectSetter[objectTrail];
             objectTrail = "";
         }
     }
+    // Object.freeze o here?
     return o;
 }
 

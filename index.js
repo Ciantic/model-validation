@@ -1,3 +1,7 @@
+/***
+ * Copyright (C) Jari Pennanen, 2015
+ * See LICENSE for copying
+ */
 /// <reference path="typings/lodash/lodash.d.ts" />
 /// <reference path="typings/q/Q.d.ts" />
 var _ = require("lodash");
@@ -82,7 +86,7 @@ function setUsingDotArrayNotation(object, notation, val) {
         if (typeof next === "undefined") {
             objectSetter[objectTrail] = val;
         }
-        if (next === ".") {
+        else if (next === ".") {
             objectSetter = objectSetter[objectTrail];
             objectTrail = "";
         }
