@@ -4,8 +4,10 @@
 import _ = require("lodash");
 import Q = require("q");
 
+export type errorList = string[]
+
 export type errorMessages = {
-    [name: string] : string[]
+    [name: string] : errorList
 }
 
 export type validationFunction = (input: any, cleaned: any) => any;
@@ -64,7 +66,7 @@ export function getUsingDotArrayNotation<T>(object: T, notation: string): [T, st
         }
     }
     key = objectTrail;
-    return [object[key], key, fullTrail.slice(0, -key.length)];
+    return object[key];
 }
 
 export function setUsingDotArrayNotation<T>(object: T, notation: string, val: any): T {
@@ -90,9 +92,9 @@ export function setUsingDotArrayNotation<T>(object: T, notation: string, val: an
     return o;
 }
 
-function getValidator(validFunc: any, fieldName: string, object: any): Validator {
+function getValidator(validFunc: any, parent: any): Validator {
     if (_.isFunction(validFunc)) {
-        return new FuncValidator(<validationFunction> validFunc, fieldName, object);
+        return new FuncValidator(<validationFunction> validFunc, parent);
     } else if (_.isPlainObject(validFunc)) {
         return new ObjectValidator(<{ [name: string] : validationFunction }> validFunc);
     } else if (_.isArray(validFunc)) {
@@ -104,30 +106,28 @@ function getValidator(validFunc: any, fieldName: string, object: any): Validator
 }
 
 export class FuncValidator implements Validator {
-    fieldName: string
     func: validationFunction
-    object: any
-    constructor(func: validationFunction, fieldName: string, object: any) {
-        this.fieldName = fieldName;
+    parent: any
+    constructor(func: validationFunction, parent: any) {
         this.func = func;
-        this.object = object;
+        this.parent = parent;
     }
     
     validate<T>(value: T): Q.Promise<ValidationResult<T>> {
-        var copy = _.cloneDeep(this.object);
+        var copy = _.cloneDeep(value);
         var errors: errorMessages = {},
             isValid = false,
             deferred = Q.defer<ValidationResult<T>>();
             
-        errors[this.fieldName] = [];
+        errors[""] = [];
         try {
             deferred.resolve({
                 isValid : true,
                 errors : {},
-                value : this.func(value, copy)
+                value : this.func(copy, this.parent)
             });
         } catch (e) {
-            errors[this.fieldName].push("" + e);
+            errors[""].push("" + e);
             deferred.resolve({
                 isValid : false,
                 errors : errors,
@@ -148,10 +148,9 @@ export class ObjectValidator implements Validator {
     validateField<T>(object: T, fieldName: string, newValue: any):
         Q.Promise<ValidationResult<T>>
     {
-        var [validFuncCandidate, getFieldName, getFieldPath] = getUsingDotArrayNotation(this.fields, fieldName);
-        //console.log("get", fieldName, getFieldName, getFieldPath);
+        var validFuncCandidate = getUsingDotArrayNotation(this.fields, fieldName);
         try {
-            var validFunc = getValidator(validFuncCandidate, fieldName, object);
+            var validFunc = getValidator(validFuncCandidate, object);
         } catch (e) {
             var errors: errorMessages = {};
             errors[fieldName] = [e];
@@ -165,13 +164,13 @@ export class ObjectValidator implements Validator {
         validFunc.validate(newValue).then((res) => {
             var fieldErrors: errorMessages = {};
             _.each(res.errors, (v, k) => {
-                fieldErrors[getFieldPath + k] = v;
+                fieldErrors[fieldName + (k ? "." + k : "")] = v;
             });
-            //console.log("res.errors", res.errors, fieldErrors);
+            
             deferred.resolve({
                 isValid : res.isValid,
                 value : res.isValid ? setUsingDotArrayNotation(object, fieldName, res.value) : object,
-                errors : res.errors
+                errors : fieldErrors
             });
         })
         return deferred.promise;

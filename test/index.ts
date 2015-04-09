@@ -21,21 +21,21 @@ describe("Utils", function() {
     it("get using without dots should work", () => {
         assert.deepEqual(
             V.getUsingDotArrayNotation(obj, "name"),
-            ["John Doe", "name", ""]
+            "John Doe"
         );
     });
     
     it("get using dot notation should work", () => {
         assert.deepEqual(
             V.getUsingDotArrayNotation(obj, "address.city"),
-            ["Someville", "city", "address."]
+            "Someville"
         );
     });
     
     it("get using very deep dot notation should work", () => {
         assert.deepEqual(
             V.getUsingDotArrayNotation({'a' : {'b' : {'c' : {'d' : 42}}}}, "a.b.c.d"),
-            [42,"d","a.b.c."]
+            42
         );
     });
     
