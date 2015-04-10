@@ -14,20 +14,50 @@ export type errorMessages = {
     [name: string] : errorList
 }
 
-export type validationFunction = (input: any, cleaned: any) => any;
-
-export type validationDefinition =
-    validationFunction | Validator |
-    { [name: string] : (validationFunction | Validator) };
-
-export type fieldValidators = {
-    [name: string] : validationDefinition
+export interface Validator {
+    validate<T>(value: T): Q.Promise<ValidationResult<T>>;
+    validatePath<T>(oldValue: T, path: string, newValue?: any, context?: any): Q.Promise<ValidationResult<T>>;
 }
 
 export interface ValidationResult<T> {
     isValid: boolean
     value: T
     errors: errorMessages
+}
+
+export type validationFunction = (input: any, context?: any) => any;
+
+export type validationDefinition =
+    validationFunction | Validator | validationFunction[] | Validator[] |
+    { [name: string] : (validationDefinition) };
+
+export type objectFieldValidators = {
+    [name: string] : (validationDefinition | validationDefinition[])
+};
+
+export type arrayFieldValidators = validationDefinition | validationDefinition[];
+
+function getValidator(validFunc: any, parent?: any): Validator {
+    
+    if (_.isFunction(validFunc)) {
+        return new FuncValidator(<validationFunction> validFunc, parent);
+    } else if (_.isObject(validFunc) && "validate" in validFunc) {
+        return <Validator> validFunc;
+    }
+    var validFuncCopy = _.cloneDeep(validFunc);
+    if (_.isPlainObject(validFuncCopy)) {
+        _.each(validFuncCopy, (v, k) => {
+            validFuncCopy[k] = getValidator(v);
+        });
+        return new ObjectValidator(<{ [name: string] : validationFunction }> validFuncCopy);
+    } else if (_.isArray(validFuncCopy)) {
+        return null;
+    }
+    throw "Validator is not defined for this field";
+}
+
+export function validator(defs: validationDefinition): Validator {
+    return getValidator(defs);
 }
 
 export function required(input: any, isNot: any = false): any {
@@ -37,20 +67,16 @@ export function required(input: any, isNot: any = false): any {
     return input;
 }
 
-export function str(input: any, def: number = 0): string {
+export function str(input: any): string {
     return "" + input;
 }
 
-export function integer(input: any, def: number = 0): number {
-    return parseInt("" + input) || def;
+export function integer(input: any): number {
+    return parseInt("" + input) || 0;
 }
 
-export function float(input: any, def: number = 0.0): number {
-    return parseFloat("" + input) || def;
-}
-
-export interface Validator {
-    validate<T>(value: T): Q.Promise<ValidationResult<T>>
+export function float(input: any): number {
+    return parseFloat("" + input) || 0.0;
 }
 
 export function getUsingDotArrayNotation(object: any, notation: string): any {
@@ -126,49 +152,51 @@ export function setUsingDotArrayNotation<T>(object: T, notation: string, val: an
     return o;
 }
 
-function getValidator(validFunc: any, parent: any): Validator {
-    if (_.isFunction(validFunc)) {
-        return new FuncValidator(<validationFunction> validFunc, parent);
-    } else if (_.isPlainObject(validFunc)) {
-        return new ObjectValidator(<{ [name: string] : validationFunction }> validFunc);
-    } else if (_.isArray(validFunc)) {
-        return new ArrayValidator(validFunc[0]);
-    } else if (_.isObject(validFunc) && "validate" in validFunc) {
-        return <Validator> validFunc;
-    }
-    throw "Validator is not defined for this field";
-}
-
-export function validate<T>(value: T): Q.Promise<ValidationResult<T>>  {
-    return null;
-}
-
 export class FuncValidator implements Validator {
     func: validationFunction
-    parent: any
-    constructor(func: validationFunction, parent: any) {
+    
+    constructor(func: validationFunction, parent?: any) {
         this.func = func;
-        this.parent = parent;
+    }
+    
+    validatePath<T>(oldValue: T, path: string, newValue?: any, context?: any):
+        Q.Promise<ValidationResult<T>>
+    {
+        var deferred = Q.defer<ValidationResult<T>>();
+        try {
+            if (path !== "") {
+                throw "Func validator does not support this path: " + path
+            }
+            deferred.resolve({
+                isValid : true,
+                errors : {},
+                value : this.func(newValue, context)
+            });
+        } catch (e) {
+            deferred.resolve({
+                isValid : false,
+                errors : {"" : [e]},
+                value : oldValue
+            });
+        }
+            
+        return deferred.promise;
     }
     
     validate<T>(value: T): Q.Promise<ValidationResult<T>> {
-        var copy = _.cloneDeep(value);
-        var errors: errorMessages = {},
-            isValid = false,
+        var copy = _.cloneDeep(value),
             deferred = Q.defer<ValidationResult<T>>();
-            
-        errors[""] = [];
+        
         try {
             deferred.resolve({
                 isValid : true,
                 errors : {},
-                value : this.func(copy, this.parent)
+                value : this.func(copy)
             });
         } catch (e) {
-            errors[""].push("" + e);
             deferred.resolve({
                 isValid : false,
-                errors : errors,
+                errors :  {"" : [e]},
                 value : copy
             });
         }
@@ -177,37 +205,45 @@ export class FuncValidator implements Validator {
     }
 }
 
+var objectRegExp = new RegExp('^([^\\.\\[\\]]+)[\\.]?(.*)');
+
 export class ObjectValidator implements Validator {
-    public fields: fieldValidators
-    constructor(fields: fieldValidators) {
+    public fields: objectFieldValidators
+    constructor(fields: objectFieldValidators) {
         this.fields = fields;
     }
     
-    validateField<T>(object: T, fieldName: string, newValue: any):
+    validatePath<T>(oldValue: T, path: string, newValue?: any, context?: any):
         Q.Promise<ValidationResult<T>>
     {
-        var validFuncCandidate = getUsingDotArrayNotation(this.fields, fieldName);
-        try {
-            var validFunc = getValidator(validFuncCandidate, object);
-        } catch (e) {
-            var errors: errorMessages = {};
-            errors[fieldName] = [e];
-            return Q.resolve({
-                isValid : false,
-                value : object,
-                errors : errors
-            });
-        }
         var deferred = Q.defer<ValidationResult<T>>();
-        validFunc.validate(newValue).then((res) => {
+        if (path === "") {
+            this.validate(newValue).then((res) => {
+                deferred.resolve({
+                    isValid : res.isValid,
+                    value : res.value,
+                    errors : res.errors
+                });
+            });
+            return deferred.promise;
+        }
+        
+        var m = objectRegExp.exec(path);
+        if (!m) {
+            throw "Object validator does not recgonize this path: " + path;
+        }
+        var [, field, remaining] = m;
+        var fieldValidator = <Validator> this.fields[field];
+        var oldFieldValue = oldValue[field];
+        fieldValidator.validatePath(oldFieldValue, remaining, newValue, context).then((res) => {
             var fieldErrors: errorMessages = {};
             _.each(res.errors, (v, k) => {
-                fieldErrors[fieldName + (k ? "." + k : "")] = v;
+                fieldErrors[field + (k ? "." + k : "")] = v;
             });
             
             deferred.resolve({
                 isValid : res.isValid,
-                value : res.isValid ? setUsingDotArrayNotation(object, fieldName, res.value) : object,
+                value : res.isValid ? setUsingDotArrayNotation(oldValue, field, res.value) : oldValue,
                 errors : fieldErrors
             });
         })
@@ -222,7 +258,7 @@ export class ObjectValidator implements Validator {
             errors: errorMessages = {};
         
         _.each(object, function(v, k) {
-            var p = self.validateField(object, k, v);
+            var p = self.validatePath(object, k, v, object);
             dfields.push(p);
             p.then((res) => {
                 if (res.isValid) {
@@ -253,14 +289,17 @@ export class ObjectValidator implements Validator {
         return defer.promise;
     }
 }
-
+/*
 export class ArrayValidator implements Validator {
-    fields: fieldValidators
-    constructor(fields: fieldValidators) {
+    fields: arrayFieldValidators
+    constructor(fields: arrayFieldValidators) {
         this.fields = fields;
     }
     
     validate<T>(object: T): Q.Promise<ValidationResult<T>> {
+        //var validFuncCandidate = getUsingDotArrayNotation(this.fields, fieldName)
+        //var getValidator(this.fields, object);
         return null;
     }
 }
+*/

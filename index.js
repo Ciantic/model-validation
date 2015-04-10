@@ -6,6 +6,29 @@
 /// <reference path="typings/q/Q.d.ts" />
 var _ = require("lodash");
 var Q = require("q");
+function getValidator(validFunc, parent) {
+    if (_.isFunction(validFunc)) {
+        return new FuncValidator(validFunc, parent);
+    }
+    else if (_.isObject(validFunc) && "validate" in validFunc) {
+        return validFunc;
+    }
+    var validFuncCopy = _.cloneDeep(validFunc);
+    if (_.isPlainObject(validFuncCopy)) {
+        _.each(validFuncCopy, function (v, k) {
+            validFuncCopy[k] = getValidator(v);
+        });
+        return new ObjectValidator(validFuncCopy);
+    }
+    else if (_.isArray(validFuncCopy)) {
+        return null;
+    }
+    throw "Validator is not defined for this field";
+}
+function validator(defs) {
+    return getValidator(defs);
+}
+exports.validator = validator;
 function required(input, isNot) {
     if (isNot === void 0) { isNot = false; }
     if (input == isNot) {
@@ -14,19 +37,16 @@ function required(input, isNot) {
     return input;
 }
 exports.required = required;
-function str(input, def) {
-    if (def === void 0) { def = 0; }
+function str(input) {
     return "" + input;
 }
 exports.str = str;
-function integer(input, def) {
-    if (def === void 0) { def = 0; }
-    return parseInt("" + input) || def;
+function integer(input) {
+    return parseInt("" + input) || 0;
 }
 exports.integer = integer;
-function float(input, def) {
-    if (def === void 0) { def = 0.0; }
-    return parseFloat("" + input) || def;
+function float(input) {
+    return parseFloat("" + input) || 0.0;
 }
 exports.float = float;
 function getUsingDotArrayNotation(object, notation) {
@@ -94,46 +114,44 @@ function setUsingDotArrayNotation(object, notation, val) {
     return o;
 }
 exports.setUsingDotArrayNotation = setUsingDotArrayNotation;
-function getValidator(validFunc, parent) {
-    if (_.isFunction(validFunc)) {
-        return new FuncValidator(validFunc, parent);
-    }
-    else if (_.isPlainObject(validFunc)) {
-        return new ObjectValidator(validFunc);
-    }
-    else if (_.isArray(validFunc)) {
-        return new ArrayValidator(validFunc[0]);
-    }
-    else if (_.isObject(validFunc) && "validate" in validFunc) {
-        return validFunc;
-    }
-    throw "Validator is not defined for this field";
-}
-function validate(value) {
-    return null;
-}
-exports.validate = validate;
 var FuncValidator = (function () {
     function FuncValidator(func, parent) {
         this.func = func;
-        this.parent = parent;
     }
+    FuncValidator.prototype.validatePath = function (oldValue, path, newValue, context) {
+        var deferred = Q.defer();
+        try {
+            if (path !== "") {
+                throw "Func validator does not support this path: " + path;
+            }
+            deferred.resolve({
+                isValid: true,
+                errors: {},
+                value: this.func(newValue, context)
+            });
+        }
+        catch (e) {
+            deferred.resolve({
+                isValid: false,
+                errors: { "": [e] },
+                value: oldValue
+            });
+        }
+        return deferred.promise;
+    };
     FuncValidator.prototype.validate = function (value) {
-        var copy = _.cloneDeep(value);
-        var errors = {}, isValid = false, deferred = Q.defer();
-        errors[""] = [];
+        var copy = _.cloneDeep(value), deferred = Q.defer();
         try {
             deferred.resolve({
                 isValid: true,
                 errors: {},
-                value: this.func(copy, this.parent)
+                value: this.func(copy)
             });
         }
         catch (e) {
-            errors[""].push("" + e);
             deferred.resolve({
                 isValid: false,
-                errors: errors,
+                errors: { "": [e] },
                 value: copy
             });
         }
@@ -142,33 +160,38 @@ var FuncValidator = (function () {
     return FuncValidator;
 })();
 exports.FuncValidator = FuncValidator;
+var objectRegExp = new RegExp('^([^\\.\\[\\]]+)[\\.]?(.*)');
 var ObjectValidator = (function () {
     function ObjectValidator(fields) {
         this.fields = fields;
     }
-    ObjectValidator.prototype.validateField = function (object, fieldName, newValue) {
-        var validFuncCandidate = getUsingDotArrayNotation(this.fields, fieldName);
-        try {
-            var validFunc = getValidator(validFuncCandidate, object);
-        }
-        catch (e) {
-            var errors = {};
-            errors[fieldName] = [e];
-            return Q.resolve({
-                isValid: false,
-                value: object,
-                errors: errors
-            });
-        }
+    ObjectValidator.prototype.validatePath = function (oldValue, path, newValue, context) {
         var deferred = Q.defer();
-        validFunc.validate(newValue).then(function (res) {
+        if (path === "") {
+            this.validate(newValue).then(function (res) {
+                deferred.resolve({
+                    isValid: res.isValid,
+                    value: res.value,
+                    errors: res.errors
+                });
+            });
+            return deferred.promise;
+        }
+        var m = objectRegExp.exec(path);
+        if (!m) {
+            throw "Object validator does not recgonize this path: " + path;
+        }
+        var field = m[1], remaining = m[2];
+        var fieldValidator = this.fields[field];
+        var oldFieldValue = oldValue[field];
+        fieldValidator.validatePath(oldFieldValue, remaining, newValue, context).then(function (res) {
             var fieldErrors = {};
             _.each(res.errors, function (v, k) {
-                fieldErrors[fieldName + (k ? "." + k : "")] = v;
+                fieldErrors[field + (k ? "." + k : "")] = v;
             });
             deferred.resolve({
                 isValid: res.isValid,
-                value: res.isValid ? setUsingDotArrayNotation(object, fieldName, res.value) : object,
+                value: res.isValid ? setUsingDotArrayNotation(oldValue, field, res.value) : oldValue,
                 errors: fieldErrors
             });
         });
@@ -177,7 +200,7 @@ var ObjectValidator = (function () {
     ObjectValidator.prototype.validate = function (object) {
         var self = this, defer = Q.defer(), dfields = [], copy = _.cloneDeep(object), errors = {};
         _.each(object, function (v, k) {
-            var p = self.validateField(object, k, v);
+            var p = self.validatePath(object, k, v, object);
             dfields.push(p);
             p.then(function (res) {
                 if (res.isValid) {
@@ -206,13 +229,3 @@ var ObjectValidator = (function () {
     return ObjectValidator;
 })();
 exports.ObjectValidator = ObjectValidator;
-var ArrayValidator = (function () {
-    function ArrayValidator(fields) {
-        this.fields = fields;
-    }
-    ArrayValidator.prototype.validate = function (object) {
-        return null;
-    };
-    return ArrayValidator;
-})();
-exports.ArrayValidator = ArrayValidator;
