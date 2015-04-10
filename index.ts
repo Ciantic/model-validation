@@ -27,36 +27,39 @@ export interface ValidationResult<T> {
 
 export type validationFunction = (input: any, context?: any) => any;
 
-export type validationDefinition =
+export type validatorDefinition =
     validationFunction | Validator | validationFunction[] | Validator[] |
-    { [name: string] : (validationDefinition) };
+    validationFunction[][] | Validator[][] |
+    validationFunction[][][] | Validator[][][] |
+    { [name: string] : (validatorDefinition) } |
+    { [name: string] : (validatorDefinition) }[];
 
-export type objectFieldValidators = {
-    [name: string] : (validationDefinition | validationDefinition[])
+export type objectValidatorDef = {
+    [name: string] : Validator
 };
 
-export type arrayFieldValidators = validationDefinition | validationDefinition[];
+export type arrayValidatorDef  = Validator;
 
 function getValidator(validFunc: any, parent?: any): Validator {
-    
     if (_.isFunction(validFunc)) {
         return new FuncValidator(<validationFunction> validFunc, parent);
     } else if (_.isObject(validFunc) && "validate" in validFunc) {
         return <Validator> validFunc;
     }
-    var validFuncCopy = _.cloneDeep(validFunc);
-    if (_.isPlainObject(validFuncCopy)) {
+    
+    if (_.isPlainObject(validFunc)) {
+        var validFuncCopy = _.cloneDeep(validFunc);
         _.each(validFuncCopy, (v, k) => {
             validFuncCopy[k] = getValidator(v);
         });
-        return new ObjectValidator(<{ [name: string] : validationFunction }> validFuncCopy);
-    } else if (_.isArray(validFuncCopy)) {
-        return null;
+        return new ObjectValidator(<{ [name: string] : Validator }> validFuncCopy);
+    } else if (_.isArray(validFunc) && validFunc.length === 1) {
+        return new ArrayValidator(getValidator(validFunc[0]));
     }
     throw "Validator is not defined for this field";
 }
 
-export function validator(defs: validationDefinition): Validator {
+export function validator(defs: validatorDefinition): Validator {
     return getValidator(defs);
 }
 
@@ -208,45 +211,45 @@ export class FuncValidator implements Validator {
 var objectRegExp = new RegExp('^([^\\.\\[\\]]+)[\\.]?(.*)');
 
 export class ObjectValidator implements Validator {
-    public fields: objectFieldValidators
-    constructor(fields: objectFieldValidators) {
+    public fields: objectValidatorDef
+    constructor(fields: objectValidatorDef) {
         this.fields = fields;
     }
     
     validatePath<T>(oldValue: T, path: string, newValue?: any, context?: any):
         Q.Promise<ValidationResult<T>>
     {
-        var deferred = Q.defer<ValidationResult<T>>();
         if (path === "") {
-            this.validate(newValue).then((res) => {
-                deferred.resolve({
-                    isValid : res.isValid,
-                    value : res.value,
-                    errors : res.errors
-                });
-            });
-            return deferred.promise;
+            return this.validate(newValue);
         }
-        
+        // TODO: Determine fields from this.fields when creating a ObjectValidator
+        // it's faster this way.
         var m = objectRegExp.exec(path);
         if (!m) {
-            throw "Object validator does not recgonize this path: " + path;
+            return Q.reject<ValidationResult<T>>({
+                isValid : false,
+                value : oldValue,
+                errors : {"" : "Object validator does not recgonize this path: " + path}
+            });
         }
-        var [, field, remaining] = m;
-        var fieldValidator = <Validator> this.fields[field];
-        var oldFieldValue = oldValue[field];
-        fieldValidator.validatePath(oldFieldValue, remaining, newValue, context).then((res) => {
-            var fieldErrors: errorMessages = {};
-            _.each(res.errors, (v, k) => {
-                fieldErrors[field + (k ? "." + k : "")] = v;
-            });
-            
-            deferred.resolve({
-                isValid : res.isValid,
-                value : res.isValid ? setUsingDotArrayNotation(oldValue, field, res.value) : oldValue,
-                errors : fieldErrors
-            });
-        })
+        var deferred = Q.defer<ValidationResult<T>>(),
+            [, field, remaining] = m,
+            fieldValidator = <Validator> this.fields[field],
+            oldFieldValue = oldValue[field];
+        //((field) => {
+            fieldValidator.validatePath(oldFieldValue, remaining, newValue, context).then((res) => {
+                var fieldErrors: errorMessages = {};
+                _.each(res.errors, (v, k) => {
+                    fieldErrors[field + (k && k[0] !== "[" ? "." + k : k)] = v;
+                });
+                
+                deferred.resolve({
+                    isValid : res.isValid,
+                    value : res.isValid ? setUsingDotArrayNotation(oldValue, field, res.value) : oldValue,
+                    errors : fieldErrors
+                });
+            })
+        //})(field);
         return deferred.promise;
     }
     
@@ -264,9 +267,10 @@ export class ObjectValidator implements Validator {
                 if (res.isValid) {
                     copy[k] = res.value[k];
                 }
-                if (res.errors[k].length) {
-                    _.assign(errors, res.errors);
-                }
+                _.each(res.errors, (v, k) => {
+                    errors[k] = v;
+                });
+                //_.assign(errors, res.errors);
             });
         });
         
@@ -289,17 +293,83 @@ export class ObjectValidator implements Validator {
         return defer.promise;
     }
 }
-/*
+
+var arrayIndexRegExp = new RegExp('^\\[(\\d+)\\](.*)');
+
 export class ArrayValidator implements Validator {
-    fields: arrayFieldValidators
-    constructor(fields: arrayFieldValidators) {
-        this.fields = fields;
+    validator: Validator
+    constructor(validator: Validator) {
+        this.validator = validator;
     }
     
-    validate<T>(object: T): Q.Promise<ValidationResult<T>> {
-        //var validFuncCandidate = getUsingDotArrayNotation(this.fields, fieldName)
-        //var getValidator(this.fields, object);
-        return null;
+    validatePath<T>(oldValue: T, path: string, newValue?: any, context?: any):
+        Q.Promise<ValidationResult<T>>
+    {
+        if (path === "") {
+            return this.validate<T>(newValue);
+        }
+        
+        var m = arrayIndexRegExp.exec(path);
+        if (!m) {
+            throw "Array validator does not recgonize this path: " + path;
+        }
+        
+        var deferred = Q.defer<ValidationResult<T>>(),
+            [, field, remaining] = m;
+        
+        this.validator.validatePath(oldValue, remaining, newValue, context).then((res) => {
+            var fieldErrors: errorMessages = {},
+                indexAccessor = "[" + field + "]";
+            
+            _.each(res.errors, (v, k) => {
+                fieldErrors[indexAccessor + (k && k[0] !== "[" ? "." + k : k)] = v;
+            });
+            
+            deferred.resolve({
+                isValid : res.isValid,
+                value : res.isValid ? res.value : oldValue,
+                errors : fieldErrors
+            });
+        })
+        return deferred.promise;
+    }
+    validate<T>(arr: T[]): Q.Promise<ValidationResult<T>> {
+        var self = this,
+            defer = Q.defer<ValidationResult<T>>(),
+            dfields: Q.Promise<ValidationResult<T>>[] = [],
+            copy = [],
+            errors: errorMessages = {};
+        
+        _.each(arr, function(v, k) {
+            
+            var p = self.validatePath<T>(arr[k], "[" + k + "]", v, arr);
+            dfields.push(p);
+            p.then((res) => {
+                if (res.isValid) {
+                    copy[k] = res.value;
+                }
+                _.each(res.errors, (v, k) => {
+                    errors[k] = v;
+                });
+            });
+        });
+        
+        // Error array filling assumes Q.all promise is resolved after all
+        // individual promise callbacks has resolved
+        Q.all(dfields).then((resz) => {
+            var isValid = true;
+            _.each(resz, (res) => {
+                if (!res.isValid) {
+                    isValid = false;
+                }
+            });
+            defer.resolve({
+                isValid : isValid,
+                value : isValid ? <any> copy : arr,
+                errors : <errorMessages> errors
+            });
+        });
+        
+        return defer.promise;
     }
 }
-*/

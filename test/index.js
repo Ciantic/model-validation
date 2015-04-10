@@ -81,6 +81,11 @@ describe("Validations", function () {
             var validator = V.validator(V.integer);
             assert.equal(validator instanceof V.FuncValidator, true);
         });
+        it("should create array validators", function () {
+            var validator = V.validator([V.integer]);
+            assert.equal(validator instanceof V.ArrayValidator, true);
+            assert.equal(validator.validator instanceof V.FuncValidator, true);
+        });
     });
     describe("Object field validation", function () {
         var validator = V.validator({
@@ -293,6 +298,114 @@ describe("Validations", function () {
                 });
                 assert.equal(res.isValid, false);
                 assert.deepEqual(res.value, obj);
+            });
+        });
+        it("should raise really nested errors with a dot notation when object validating", function () {
+            var deepValidator = V.validator({
+                "aaa": {
+                    "bbb": {
+                        "ccc": function (i) { return V.required(V.integer(i)); }
+                    }
+                }
+            });
+            var obj = {
+                "aaa": {
+                    "bbb": {
+                        "ccc": 0
+                    }
+                }
+            };
+            return deepValidator.validate(obj).then(function (res) {
+                assert.deepEqual(res.errors, {
+                    "aaa.bbb.ccc": ["This field is required"],
+                });
+                assert.equal(res.isValid, false);
+                assert.deepEqual(res.value, obj);
+            });
+        });
+    });
+    describe("Array of things should validation", function () {
+        var validator = V.validator([V.str]);
+        it("should work", function () {
+            var arr = ["first", "second"];
+            return validator.validate(arr).then(function (res) {
+                assert.deepEqual(res.errors, {});
+                assert.equal(res.isValid, true);
+                assert.deepEqual(res.value, arr);
+            });
+        });
+    });
+    describe("Array of objects validation", function () {
+        var validator = V.validator([{
+                "name": function (i) { return V.required(V.str(i)); },
+                "age": V.float
+            }]);
+        it("should work", function () {
+            var objs = [
+                {
+                    name: "John Doe",
+                    age: 57
+                }, {
+                    name: "Little Doe",
+                    age: 13
+                }];
+            return validator.validate(objs).then(function (res) {
+                assert.deepEqual(res.errors, {});
+                assert.equal(res.isValid, true);
+                assert.deepEqual(res.value, objs);
+            });
+        });
+    });
+    describe("Array of things should raise errors", function () {
+        var validator = V.validator([function (i) { return V.required(V.str(i)); }]);
+        it("should work", function () {
+            var arr = ["", ""];
+            return validator.validate(arr).then(function (res) {
+                assert.deepEqual(res.errors, { "[0]": ["This field is required"], "[1]": ["This field is required"] });
+                assert.equal(res.isValid, false);
+                assert.deepEqual(res.value, arr);
+            });
+        });
+    });
+    describe("Array of arrays should raise errors", function () {
+        var validator = V.validator([[[function (i) { return V.required(V.str(i)); }]]]);
+        it("should work", function () {
+            var arr = [[["", ""]]];
+            return validator.validate(arr).then(function (res) {
+                assert.deepEqual(res.errors, {
+                    "[0][0][0]": ["This field is required"],
+                    "[0][0][1]": ["This field is required"]
+                });
+                assert.equal(res.isValid, false);
+                assert.deepEqual(res.value, arr);
+            });
+        });
+    });
+    describe("Mishmash of weird things should work", function () {
+        var validator = V.validator({
+            "aaa": [{ "bbb": [{ "ccc": function (i) { return V.required(V.str(i)); } }] }]
+        });
+        it("should work", function () {
+            var thing = { "aaa": [{ "bbb": [{ "ccc": "thingie" }] }] };
+            return validator.validate(thing).then(function (res) {
+                assert.deepEqual(res.errors, {});
+                assert.equal(res.isValid, true);
+                assert.deepEqual(res.value, thing);
+            });
+        });
+    });
+    describe("Mishmash of weird things should raise errors", function () {
+        var validator = V.validator({
+            "aaa": [{ "bbb": [{ "ccc": function (i) { return V.required(V.str(i)); } }] }]
+        });
+        it("should work", function () {
+            var thing = { "aaa": [{ "bbb": [{ "ccc": "" }] }] };
+            return validator.validate(thing).then(function (res) {
+                assert.deepEqual(res.errors, {
+                    "aaa[0].bbb[0].ccc": ["This field is required"]
+                });
+                assert.equal(res.isValid, false);
+                assert.deepEqual(res.value, thing);
             });
         });
     });

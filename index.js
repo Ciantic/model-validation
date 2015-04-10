@@ -13,15 +13,15 @@ function getValidator(validFunc, parent) {
     else if (_.isObject(validFunc) && "validate" in validFunc) {
         return validFunc;
     }
-    var validFuncCopy = _.cloneDeep(validFunc);
-    if (_.isPlainObject(validFuncCopy)) {
+    if (_.isPlainObject(validFunc)) {
+        var validFuncCopy = _.cloneDeep(validFunc);
         _.each(validFuncCopy, function (v, k) {
             validFuncCopy[k] = getValidator(v);
         });
         return new ObjectValidator(validFuncCopy);
     }
-    else if (_.isArray(validFuncCopy)) {
-        return null;
+    else if (_.isArray(validFunc) && validFunc.length === 1) {
+        return new ArrayValidator(getValidator(validFunc[0]));
     }
     throw "Validator is not defined for this field";
 }
@@ -166,28 +166,22 @@ var ObjectValidator = (function () {
         this.fields = fields;
     }
     ObjectValidator.prototype.validatePath = function (oldValue, path, newValue, context) {
-        var deferred = Q.defer();
         if (path === "") {
-            this.validate(newValue).then(function (res) {
-                deferred.resolve({
-                    isValid: res.isValid,
-                    value: res.value,
-                    errors: res.errors
-                });
-            });
-            return deferred.promise;
+            return this.validate(newValue);
         }
         var m = objectRegExp.exec(path);
         if (!m) {
-            throw "Object validator does not recgonize this path: " + path;
+            return Q.reject({
+                isValid: false,
+                value: oldValue,
+                errors: { "": "Object validator does not recgonize this path: " + path }
+            });
         }
-        var field = m[1], remaining = m[2];
-        var fieldValidator = this.fields[field];
-        var oldFieldValue = oldValue[field];
+        var deferred = Q.defer(), field = m[1], remaining = m[2], fieldValidator = this.fields[field], oldFieldValue = oldValue[field];
         fieldValidator.validatePath(oldFieldValue, remaining, newValue, context).then(function (res) {
             var fieldErrors = {};
             _.each(res.errors, function (v, k) {
-                fieldErrors[field + (k ? "." + k : "")] = v;
+                fieldErrors[field + (k && k[0] !== "[" ? "." + k : k)] = v;
             });
             deferred.resolve({
                 isValid: res.isValid,
@@ -206,9 +200,9 @@ var ObjectValidator = (function () {
                 if (res.isValid) {
                     copy[k] = res.value[k];
                 }
-                if (res.errors[k].length) {
-                    _.assign(errors, res.errors);
-                }
+                _.each(res.errors, function (v, k) {
+                    errors[k] = v;
+                });
             });
         });
         Q.all(dfields).then(function (resz) {
@@ -229,3 +223,62 @@ var ObjectValidator = (function () {
     return ObjectValidator;
 })();
 exports.ObjectValidator = ObjectValidator;
+var arrayIndexRegExp = new RegExp('^\\[(\\d+)\\](.*)');
+var ArrayValidator = (function () {
+    function ArrayValidator(validator) {
+        this.validator = validator;
+    }
+    ArrayValidator.prototype.validatePath = function (oldValue, path, newValue, context) {
+        if (path === "") {
+            return this.validate(newValue);
+        }
+        var m = arrayIndexRegExp.exec(path);
+        if (!m) {
+            throw "Array validator does not recgonize this path: " + path;
+        }
+        var deferred = Q.defer(), field = m[1], remaining = m[2];
+        this.validator.validatePath(oldValue, remaining, newValue, context).then(function (res) {
+            var fieldErrors = {}, indexAccessor = "[" + field + "]";
+            _.each(res.errors, function (v, k) {
+                fieldErrors[indexAccessor + (k && k[0] !== "[" ? "." + k : k)] = v;
+            });
+            deferred.resolve({
+                isValid: res.isValid,
+                value: res.isValid ? res.value : oldValue,
+                errors: fieldErrors
+            });
+        });
+        return deferred.promise;
+    };
+    ArrayValidator.prototype.validate = function (arr) {
+        var self = this, defer = Q.defer(), dfields = [], copy = [], errors = {};
+        _.each(arr, function (v, k) {
+            var p = self.validatePath(arr[k], "[" + k + "]", v, arr);
+            dfields.push(p);
+            p.then(function (res) {
+                if (res.isValid) {
+                    copy[k] = res.value;
+                }
+                _.each(res.errors, function (v, k) {
+                    errors[k] = v;
+                });
+            });
+        });
+        Q.all(dfields).then(function (resz) {
+            var isValid = true;
+            _.each(resz, function (res) {
+                if (!res.isValid) {
+                    isValid = false;
+                }
+            });
+            defer.resolve({
+                isValid: isValid,
+                value: isValid ? copy : arr,
+                errors: errors
+            });
+        });
+        return defer.promise;
+    };
+    return ArrayValidator;
+})();
+exports.ArrayValidator = ArrayValidator;
