@@ -179,13 +179,17 @@ var ObjectValidator = (function () {
         }
         var deferred = Q.defer(), field = m[1], remaining = m[2], fieldValidator = this.fields[field], oldFieldValue = oldValue[field];
         fieldValidator.validatePath(oldFieldValue, remaining, newValue, context).then(function (res) {
-            var fieldErrors = {};
+            var fieldErrors = {}, value = oldValue;
             _.each(res.errors, function (v, k) {
                 fieldErrors[field + (k.length > 0 && k[0] !== "[" ? "." + k : k)] = v;
             });
+            if (res.isValid) {
+                value = _.cloneDeep(oldValue);
+                value[field] = res.value;
+            }
             deferred.resolve({
                 isValid: res.isValid,
-                value: res.isValid ? setUsingDotArrayNotation(oldValue, field, res.value) : oldValue,
+                value: value,
                 errors: fieldErrors
             });
         });
@@ -200,9 +204,7 @@ var ObjectValidator = (function () {
                 if (res.isValid) {
                     copy[k] = res.value[k];
                 }
-                _.each(res.errors, function (v, k) {
-                    errors[k] = v;
-                });
+                _.assign(errors, res.errors);
             });
         });
         Q.all(dfields).then(function (resz) {

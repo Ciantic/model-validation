@@ -2,7 +2,7 @@
     "compilerOptions": {
         "target": "es5",
         "module": "commonjs",
-        "declaration": false,
+        "declaration": true,
         "noImplicitAny": false,
         "removeComments": true,
         "noLib": false
@@ -12,7 +12,9 @@
         "!./node_modules/**/*.ts"
     ],
     "files": [
+        "./index.d.ts",
         "./index.ts",
+        "./test/index.d.ts",
         "./test/index.ts",
         "./typings/assert/assert.d.ts",
         "./typings/lodash/lodash.d.ts",

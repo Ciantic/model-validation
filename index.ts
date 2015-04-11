@@ -82,6 +82,9 @@ export function float(input: any): number {
     return parseFloat("" + input) || 0.0;
 }
 
+/**
+ @deprecated
+ */
 export function getUsingDotArrayNotation(object: any, notation: string): any {
     var objectGetter = object,
         objectTrail = "",
@@ -115,6 +118,9 @@ export function getUsingDotArrayNotation(object: any, notation: string): any {
     return objectGetter;
 }
 
+/**
+ @deprecated
+ */
 export function setUsingDotArrayNotation<T>(object: T, notation: string, val: any): T {
     var o = _.cloneDeep(object),
         objectSetter = o,
@@ -238,14 +244,18 @@ export class ObjectValidator implements Validator {
             oldFieldValue = oldValue[field];
 
         fieldValidator.validatePath(oldFieldValue, remaining, newValue, context).then((res) => {
-            var fieldErrors: errorMessages = {};
+            var fieldErrors: errorMessages = {},
+                value = oldValue;
             _.each(res.errors, (v, k) => {
                 fieldErrors[field + (k.length > 0 && k[0] !== "[" ? "." + k : k)] = v;
             });
-            
+            if (res.isValid) {
+                value = _.cloneDeep(oldValue);
+                value[field] = res.value;
+            }
             deferred.resolve({
                 isValid : res.isValid,
-                value : res.isValid ? setUsingDotArrayNotation(oldValue, field, res.value) : oldValue,
+                value : value,
                 errors : fieldErrors
             });
         })
@@ -267,10 +277,7 @@ export class ObjectValidator implements Validator {
                 if (res.isValid) {
                     copy[k] = res.value[k];
                 }
-                _.each(res.errors, (v, k) => {
-                    errors[k] = v;
-                });
-                //_.assign(errors, res.errors);
+                _.assign(errors, res.errors);
             });
         });
         
