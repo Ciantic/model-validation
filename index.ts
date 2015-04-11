@@ -236,20 +236,20 @@ export class ObjectValidator implements Validator {
             [, field, remaining] = m,
             fieldValidator = <Validator> this.fields[field],
             oldFieldValue = oldValue[field];
-        //((field) => {
-            fieldValidator.validatePath(oldFieldValue, remaining, newValue, context).then((res) => {
-                var fieldErrors: errorMessages = {};
-                _.each(res.errors, (v, k) => {
-                    fieldErrors[field + (k && k[0] !== "[" ? "." + k : k)] = v;
-                });
-                
-                deferred.resolve({
-                    isValid : res.isValid,
-                    value : res.isValid ? setUsingDotArrayNotation(oldValue, field, res.value) : oldValue,
-                    errors : fieldErrors
-                });
-            })
-        //})(field);
+
+        fieldValidator.validatePath(oldFieldValue, remaining, newValue, context).then((res) => {
+            var fieldErrors: errorMessages = {};
+            _.each(res.errors, (v, k) => {
+                fieldErrors[field + (k.length > 0 && k[0] !== "[" ? "." + k : k)] = v;
+            });
+            
+            deferred.resolve({
+                isValid : res.isValid,
+                value : res.isValid ? setUsingDotArrayNotation(oldValue, field, res.value) : oldValue,
+                errors : fieldErrors
+            });
+        })
+
         return deferred.promise;
     }
     
@@ -322,7 +322,7 @@ export class ArrayValidator implements Validator {
                 indexAccessor = "[" + field + "]";
             
             _.each(res.errors, (v, k) => {
-                fieldErrors[indexAccessor + (k && k[0] !== "[" ? "." + k : k)] = v;
+                fieldErrors[indexAccessor + (k.length > 0 && k[0] !== "[" ? "." + k : k)] = v;
             });
             
             deferred.resolve({

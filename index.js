@@ -181,7 +181,7 @@ var ObjectValidator = (function () {
         fieldValidator.validatePath(oldFieldValue, remaining, newValue, context).then(function (res) {
             var fieldErrors = {};
             _.each(res.errors, function (v, k) {
-                fieldErrors[field + (k && k[0] !== "[" ? "." + k : k)] = v;
+                fieldErrors[field + (k.length > 0 && k[0] !== "[" ? "." + k : k)] = v;
             });
             deferred.resolve({
                 isValid: res.isValid,
@@ -240,7 +240,7 @@ var ArrayValidator = (function () {
         this.validator.validatePath(oldValue, remaining, newValue, context).then(function (res) {
             var fieldErrors = {}, indexAccessor = "[" + field + "]";
             _.each(res.errors, function (v, k) {
-                fieldErrors[indexAccessor + (k && k[0] !== "[" ? "." + k : k)] = v;
+                fieldErrors[indexAccessor + (k.length > 0 && k[0] !== "[" ? "." + k : k)] = v;
             });
             deferred.resolve({
                 isValid: res.isValid,
