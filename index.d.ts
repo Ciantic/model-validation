@@ -29,8 +29,6 @@ export declare function required(input: any, isNot?: any): any;
 export declare function str(input: any): string;
 export declare function integer(input: any): number;
 export declare function float(input: any): number;
-export declare function getUsingDotArrayNotation(object: any, notation: string): any;
-export declare function setUsingDotArrayNotation<T>(object: T, notation: string, val: any): T;
 export declare class FuncValidator implements Validator {
     func: validationFunction;
     constructor(func: validationFunction, parent?: any);
