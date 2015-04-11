@@ -261,9 +261,7 @@ var ArrayValidator = (function () {
                 if (res.isValid) {
                     copy[k] = res.value;
                 }
-                _.each(res.errors, function (v, k) {
-                    errors[k] = v;
-                });
+                _.assign(errors, res.errors);
             });
         });
         Q.all(dfields).then(function (resz) {

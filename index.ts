@@ -355,9 +355,7 @@ export class ArrayValidator implements Validator {
                 if (res.isValid) {
                     copy[k] = res.value;
                 }
-                _.each(res.errors, (v, k) => {
-                    errors[k] = v;
-                });
+                _.assign(errors, res.errors);
             });
         });
         
