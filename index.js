@@ -54,25 +54,28 @@ var FuncValidator = (function () {
         this.func = func;
     }
     FuncValidator.prototype.validatePath = function (oldValue, path, newValue, context) {
+        if (path !== "") {
+            return Q.reject({
+                isValid: false,
+                value: oldValue,
+                errors: { "": ["Function validator does not recgonize this path:" + path] }
+            });
+        }
         var deferred = Q.defer();
         try {
-            if (path !== "") {
-                throw "Func validator does not support this path: " + path;
-            }
-            deferred.resolve({
+            return Q.resolve({
                 isValid: true,
                 errors: {},
                 value: this.func(newValue, context)
             });
         }
         catch (e) {
-            deferred.resolve({
+            return Q.resolve({
                 isValid: false,
                 errors: { "": [e] },
                 value: oldValue
             });
         }
-        return deferred.promise;
     };
     FuncValidator.prototype.validate = function (value) {
         var copy = _.cloneDeep(value), deferred = Q.defer();
@@ -131,9 +134,9 @@ var ObjectValidator = (function () {
         return deferred.promise;
     };
     ObjectValidator.prototype.validate = function (object) {
-        var self = this, defer = Q.defer(), dfields = [], copy = _.cloneDeep(object), errors = {};
-        _.each(object, function (v, k) {
-            var p = self.validatePath(object, k, v, object);
+        var self = this, defer = Q.defer(), dfields = [], copy = _.pick(_.cloneDeep(object), _.keys(this.fields)), errors = {};
+        _.each(this.fields, function (v, k) {
+            var p = self.validatePath(object, k, object[k], object);
             dfields.push(p);
             p.then(function (res) {
                 if (res.isValid) {

@@ -92,25 +92,28 @@ export class FuncValidator implements Validator {
     validatePath<T>(oldValue: T, path: string, newValue?: any, context?: any):
         Q.Promise<ValidationResult<T>>
     {
+        if (path !== "") {
+            return Q.reject<ValidationResult<T>>({
+                isValid : false,
+                value : oldValue,
+                errors : {"" : ["Function validator does not recgonize this path:" + path]}
+            });
+        }
+        
         var deferred = Q.defer<ValidationResult<T>>();
         try {
-            if (path !== "") {
-                throw "Func validator does not support this path: " + path
-            }
-            deferred.resolve({
+            return Q.resolve<ValidationResult<T>>({
                 isValid : true,
                 errors : {},
                 value : this.func(newValue, context)
             });
         } catch (e) {
-            deferred.resolve({
+            return Q.resolve<ValidationResult<T>>({
                 isValid : false,
                 errors : {"" : [e]},
                 value : oldValue
             });
         }
-            
-        return deferred.promise;
     }
     
     validate<T>(value: T): Q.Promise<ValidationResult<T>> {
@@ -188,11 +191,11 @@ export class ObjectValidator implements Validator {
         var self = this,
             defer = Q.defer<ValidationResult<T>>(),
             dfields: Q.Promise<ValidationResult<T>>[] = [],
-            copy = _.cloneDeep(object),
+            copy = _.pick(_.cloneDeep(object), _.keys(this.fields)),
             errors: errorMessages = {};
         
-        _.each(object, function(v, k) {
-            var p = self.validatePath(object, k, v, object);
+        _.each(this.fields, function(v, k) {
+            var p = self.validatePath(object, k, object[k], object);
             dfields.push(p);
             p.then((res) => {
                 if (res.isValid) {

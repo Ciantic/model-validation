@@ -31,7 +31,7 @@ describe("Validations", function () {
             assert.equal(validator.validator instanceof V.FuncValidator, true);
         });
     });
-    describe("Object field validation", function () {
+    describe("Object path validation", function () {
         it("should work", function () {
             var obj = {
                 id: 123,
@@ -153,6 +153,46 @@ describe("Validations", function () {
                     "age": ["This field is required"],
                     "name": ["This field is required"]
                 });
+            });
+        });
+        it("should omit extra fields", function () {
+            var obj = {
+                id: 5,
+                name: "John Doe",
+                age: 30,
+                occupation: "Magician"
+            };
+            return V.validator({
+                "id": V.integer,
+                "name": function (i) { return V.required(V.str(i)); },
+                "age": function (i) { return V.required(V.float(i)); },
+            }).validate(obj).then(function (res) {
+                assert.equal(res.isValid, true);
+                assert.deepEqual(res.value, {
+                    id: 5,
+                    name: "John Doe",
+                    age: 30
+                });
+                assert.deepEqual(res.errors, {});
+            });
+        });
+        it("should create missing fields", function () {
+            var obj = {
+                id: 5,
+                name: "John Doe",
+            };
+            return V.validator({
+                "id": V.integer,
+                "name": function (i) { return V.required(V.str(i)); },
+                "age": function (i) { return V.float(i); },
+            }).validate(obj).then(function (res) {
+                assert.equal(res.isValid, true);
+                assert.deepEqual(res.value, {
+                    id: 5,
+                    name: "John Doe",
+                    age: 0
+                });
+                assert.deepEqual(res.errors, {});
             });
         });
     });

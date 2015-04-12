@@ -13,7 +13,7 @@ var assert = require("assert");
 describe("Validations", function() {
     describe("Validator creation", function() {
         it("should create object validators", () => {
-            var validator = <V.ObjectValidator> V.validator({
+            var validator = <any> V.validator({
                 'a' : V.integer
             });
             assert.equal(validator instanceof V.ObjectValidator, true);
@@ -41,7 +41,7 @@ describe("Validations", function() {
             assert.equal(validator.validator instanceof V.FuncValidator, true);
         });
     });
-    describe("Object field validation", function() {
+    describe("Object path validation", function() {
         it("should work", () => {
             var obj = {
                 id: 123,
@@ -169,6 +169,48 @@ describe("Validations", function() {
                     "name": ["This field is required"]
                 });
             })
+        });
+        
+        it("should omit extra fields", () => {
+            var obj = {
+                id : 5,
+                name : "John Doe",
+                age : 30,
+                occupation : "Magician"
+            }
+            return V.validator({
+                    "id": V.integer,
+                    "name": (i) => V.required(V.str(i)),
+                    "age": (i) => V.required(V.float(i)),
+                }).validate(obj).then((res) => {
+                    assert.equal(res.isValid, true);
+                    assert.deepEqual(res.value, {
+                        id : 5,
+                        name : "John Doe",
+                        age : 30
+                    });
+                    assert.deepEqual(res.errors, {});
+                });
+        });
+        
+        it("should create missing fields", () => {
+            var obj = {
+                id : 5,
+                name : "John Doe",
+            }
+            return V.validator({
+                    "id": V.integer,
+                    "name": (i) => V.required(V.str(i)),
+                    "age": (i) => V.float(i),
+                }).validate(obj).then((res) => {
+                    assert.equal(res.isValid, true);
+                    assert.deepEqual(res.value, {
+                        id : 5,
+                        name : "John Doe",
+                        age : 0
+                    });
+                    assert.deepEqual(res.errors, {});
+                });
         });
     });
 
