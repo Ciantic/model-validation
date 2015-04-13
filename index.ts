@@ -14,8 +14,8 @@ export type errorMessages = {
     [name: string] : errorList
 }
 
-export interface Validator {
-    validate<T>(value: T): Q.Promise<ValidationResult<T>>;
+export interface Validator<O> {
+    validate(value: O): Q.Promise<ValidationResult<O>>;
     validatePath<T>(oldValue: T, path: string, newValue?: any, context?: any): Q.Promise<ValidationResult<T>>;
 }
 
@@ -26,41 +26,41 @@ export interface ValidationResult<T> {
 }
 
 export type validationFunction = (input: any, context?: any) => any;
+/*
+TODO: Does not work, recursive typing short circuits to any
+      https://github.com/Microsoft/TypeScript/issues/647
 
 export type validatorDefinition =
-    validationFunction | Validator | validationFunction[] | Validator[] |
-    validationFunction[][] | Validator[][] |
-    validationFunction[][][] | Validator[][][] |
+    validationFunction | Validator<any> | validationFunction[] | Validator<any>[] |
+    validationFunction[][] | Validator<any>[][] |
     { [name: string] : (validatorDefinition) } |
     { [name: string] : (validatorDefinition) }[];
+*/
 
-export type objectValidatorDef = {
-    [name: string] : Validator
-};
-
-export type arrayValidatorDef  = Validator;
-
-function getValidator(validFunc: any, parent?: any): Validator {
+function getValidator<O>(validFunc: any, parent?: any): Validator<O> {
+    // Is validator function
     if (_.isFunction(validFunc)) {
-        return new FuncValidator(<validationFunction> validFunc, parent);
-    } else if (_.isObject(validFunc) && "validate" in validFunc) {
-        return <Validator> validFunc;
-    }
-    
-    if (_.isPlainObject(validFunc)) {
+        return new FuncValidator<O>(<validationFunction> validFunc, parent);
+    // Looks like a Validator
+    } else if (_.isObject(validFunc) && "validate" in validFunc && "validatePath" in validFunc) {
+        return <Validator<O>> validFunc;
+    // Is ObjectValidator masquerading as object
+    } else if (_.isPlainObject(validFunc)) {
         var validFuncCopy = _.cloneDeep(validFunc);
         _.each(validFuncCopy, (v, k) => {
-            validFuncCopy[k] = getValidator(v);
+            validFuncCopy[k] = getValidator<O>(v);
         });
-        return new ObjectValidator(<{ [name: string] : Validator }> validFuncCopy);
+        return new ObjectValidator<O>(<{ [name: string] : Validator<any> }> validFuncCopy);
+    // Is ArrayValidator masquerading as array
     } else if (_.isArray(validFunc) && validFunc.length === 1) {
-        return new ArrayValidator(getValidator(validFunc[0]));
+        return <any> new ArrayValidator(<any> getValidator(validFunc[0]));
     }
+    
     throw "Validator is not defined for this field";
 }
 
-export function validator(defs: validatorDefinition): Validator {
-    return getValidator(defs);
+export function validator<O>(defs: any): Validator<O> {
+    return <Validator<O>> getValidator(defs);
 }
 
 export function required(input: any, isNot: any = false): any {
@@ -70,7 +70,7 @@ export function required(input: any, isNot: any = false): any {
     return input;
 }
 
-export function str(input: any): string {
+export function string(input: any): string {
     return "" + input;
 }
 
@@ -82,7 +82,31 @@ export function float(input: any): number {
     return parseFloat("" + input) || 0.0;
 }
 
-export class FuncValidator implements Validator {
+export function isString(input: any): string {
+    if (!_.isString(input)) {
+        throw "Must be a string"
+    }
+    return input;
+}
+
+export function isInteger(input: any): number {
+    if (_.isString(input) && !/\d+/.exec(input) ||
+        _.isNumber(input) && parseInt(input) !== input)
+    {
+        throw "Must be an integer"
+    }
+    return parseInt("" + input) || 0;
+}
+
+export function isFloat(input: any): number {
+    if (_.isString(input) && !/\d+(\.\d+)?/.exec(input))
+    {
+        throw "Must be an decimal number"
+    }
+    return parseFloat("" + input) || 0.0;
+}
+
+export class FuncValidator<O> implements Validator<O> {
     func: validationFunction
     
     constructor(func: validationFunction, parent?: any) {
@@ -116,9 +140,9 @@ export class FuncValidator implements Validator {
         }
     }
     
-    validate<T>(value: T): Q.Promise<ValidationResult<T>> {
+    validate(value: O): Q.Promise<ValidationResult<O>> {
         var copy = _.cloneDeep(value),
-            deferred = Q.defer<ValidationResult<T>>();
+            deferred = Q.defer<ValidationResult<O>>();
         
         try {
             deferred.resolve({
@@ -140,9 +164,10 @@ export class FuncValidator implements Validator {
 
 var objectRegExp = new RegExp('^([^\\.\\[\\]]+)[\\.]?(.*)');
 
-export class ObjectValidator implements Validator {
-    public fields: objectValidatorDef
-    constructor(fields: objectValidatorDef) {
+export class ObjectValidator<O> implements Validator<O> {
+    public fields: { [name: string] : Validator<any> }
+    
+    constructor(fields: { [name: string] : Validator<any> }) {
         this.fields = fields;
     }
     
@@ -150,7 +175,7 @@ export class ObjectValidator implements Validator {
         Q.Promise<ValidationResult<T>>
     {
         if (path === "") {
-            return this.validate(newValue);
+            return <any> this.validate(newValue);
         }
         // TODO: Determine fields from this.fields when creating a ObjectValidator
         // it's faster this way.
@@ -164,7 +189,7 @@ export class ObjectValidator implements Validator {
         }
         var deferred = Q.defer<ValidationResult<T>>(),
             [, field, remaining] = m,
-            fieldValidator = <Validator> this.fields[field],
+            fieldValidator = <Validator<any>> this.fields[field],
             oldFieldValue = oldValue[field];
 
         fieldValidator.validatePath(oldFieldValue, remaining, newValue, context).then((res) => {
@@ -187,10 +212,10 @@ export class ObjectValidator implements Validator {
         return deferred.promise;
     }
     
-    validate<T>(object: T): Q.Promise<ValidationResult<T>> {
+    validate(object: O): Q.Promise<ValidationResult<O>> {
         var self = this,
-            defer = Q.defer<ValidationResult<T>>(),
-            dfields: Q.Promise<ValidationResult<T>>[] = [],
+            defer = Q.defer<ValidationResult<O>>(),
+            dfields: Q.Promise<ValidationResult<O>>[] = [],
             copy = _.pick(_.cloneDeep(object), _.keys(this.fields)),
             errors: errorMessages = {};
         
@@ -216,7 +241,7 @@ export class ObjectValidator implements Validator {
             });
             defer.resolve({
                 isValid : isValid,
-                value : <T> copy,
+                value : <O> copy,
                 errors : <errorMessages> errors
             });
         });
@@ -227,9 +252,9 @@ export class ObjectValidator implements Validator {
 
 var arrayIndexRegExp = new RegExp('^\\[(\\d+)\\](.*)');
 
-export class ArrayValidator implements Validator {
-    validator: Validator
-    constructor(validator: Validator) {
+export class ArrayValidator<O> implements Validator<O[]> {
+    validator: Validator<O>
+    constructor(validator: Validator<O>) {
         this.validator = validator;
     }
     
@@ -237,7 +262,7 @@ export class ArrayValidator implements Validator {
         Q.Promise<ValidationResult<T>>
     {
         if (path === "") {
-            return this.validate<T>(newValue);
+            return <any> this.validate(newValue);
         }
         
         var m = arrayIndexRegExp.exec(path);
@@ -264,16 +289,16 @@ export class ArrayValidator implements Validator {
         })
         return deferred.promise;
     }
-    validate<T>(arr: T[]): Q.Promise<ValidationResult<T>> {
+    validate(arr: O[]): Q.Promise<ValidationResult<O[]>> {
         var self = this,
-            defer = Q.defer<ValidationResult<T>>(),
-            dfields: Q.Promise<ValidationResult<T>>[] = [],
+            defer = Q.defer<ValidationResult<O[]>>(),
+            dfields: Q.Promise<ValidationResult<O>>[] = [],
             copy = [],
             errors: errorMessages = {};
         
         _.each(arr, function(v, k) {
             
-            var p = self.validatePath<T>(arr[k], "[" + k + "]", v, arr);
+            var p = self.validatePath<O>(arr[k], "[" + k + "]", v, arr);
             dfields.push(p);
             p.then((res) => {
                 if (res.isValid) {

@@ -12,6 +12,7 @@
         "!./node_modules/**/*.ts"
     ],
     "files": [
+        "./examples/with-react/index.ts",
         "./index.d.ts",
         "./index.ts",
         "./test/index.d.ts",

@@ -10,10 +10,10 @@ function getValidator(validFunc, parent) {
     if (_.isFunction(validFunc)) {
         return new FuncValidator(validFunc, parent);
     }
-    else if (_.isObject(validFunc) && "validate" in validFunc) {
+    else if (_.isObject(validFunc) && "validate" in validFunc && "validatePath" in validFunc) {
         return validFunc;
     }
-    if (_.isPlainObject(validFunc)) {
+    else if (_.isPlainObject(validFunc)) {
         var validFuncCopy = _.cloneDeep(validFunc);
         _.each(validFuncCopy, function (v, k) {
             validFuncCopy[k] = getValidator(v);
@@ -37,10 +37,10 @@ function required(input, isNot) {
     return input;
 }
 exports.required = required;
-function str(input) {
+function string(input) {
     return "" + input;
 }
-exports.str = str;
+exports.string = string;
 function integer(input) {
     return parseInt("" + input) || 0;
 }
@@ -49,6 +49,28 @@ function float(input) {
     return parseFloat("" + input) || 0.0;
 }
 exports.float = float;
+function isString(input) {
+    if (!_.isString(input)) {
+        throw "Must be a string";
+    }
+    return input;
+}
+exports.isString = isString;
+function isInteger(input) {
+    if (_.isString(input) && !/\d+/.exec(input) ||
+        _.isNumber(input) && parseInt(input) !== input) {
+        throw "Must be an integer";
+    }
+    return parseInt("" + input) || 0;
+}
+exports.isInteger = isInteger;
+function isFloat(input) {
+    if (_.isString(input) && !/\d+(\.\d+)?/.exec(input)) {
+        throw "Must be an decimal number";
+    }
+    return parseFloat("" + input) || 0.0;
+}
+exports.isFloat = isFloat;
 var FuncValidator = (function () {
     function FuncValidator(func, parent) {
         this.func = func;

@@ -5,8 +5,8 @@ export declare type errorList = string[];
 export declare type errorMessages = {
     [name: string]: errorList;
 };
-export interface Validator {
-    validate<T>(value: T): Q.Promise<ValidationResult<T>>;
+export interface Validator<O> {
+    validate(value: O): Q.Promise<ValidationResult<O>>;
     validatePath<T>(oldValue: T, path: string, newValue?: any, context?: any): Q.Promise<ValidationResult<T>>;
 }
 export interface ValidationResult<T> {
@@ -15,35 +15,33 @@ export interface ValidationResult<T> {
     errors: errorMessages;
 }
 export declare type validationFunction = (input: any, context?: any) => any;
-export declare type validatorDefinition = validationFunction | Validator | validationFunction[] | Validator[] | validationFunction[][] | Validator[][] | validationFunction[][][] | Validator[][][] | {
-    [name: string]: (validatorDefinition);
-} | {
-    [name: string]: (validatorDefinition);
-}[];
-export declare type objectValidatorDef = {
-    [name: string]: Validator;
-};
-export declare type arrayValidatorDef = Validator;
-export declare function validator(defs: validatorDefinition): Validator;
+export declare function validator<O>(defs: any): Validator<O>;
 export declare function required(input: any, isNot?: any): any;
-export declare function str(input: any): string;
+export declare function string(input: any): string;
 export declare function integer(input: any): number;
 export declare function float(input: any): number;
-export declare class FuncValidator implements Validator {
+export declare function isString(input: any): string;
+export declare function isInteger(input: any): number;
+export declare function isFloat(input: any): number;
+export declare class FuncValidator<O> implements Validator<O> {
     func: validationFunction;
     constructor(func: validationFunction, parent?: any);
     validatePath<T>(oldValue: T, path: string, newValue?: any, context?: any): Q.Promise<ValidationResult<T>>;
-    validate<T>(value: T): Q.Promise<ValidationResult<T>>;
+    validate(value: O): Q.Promise<ValidationResult<O>>;
 }
-export declare class ObjectValidator implements Validator {
-    fields: objectValidatorDef;
-    constructor(fields: objectValidatorDef);
+export declare class ObjectValidator<O> implements Validator<O> {
+    fields: {
+        [name: string]: Validator<any>;
+    };
+    constructor(fields: {
+        [name: string]: Validator<any>;
+    });
     validatePath<T>(oldValue: T, path: string, newValue?: any, context?: any): Q.Promise<ValidationResult<T>>;
-    validate<T>(object: T): Q.Promise<ValidationResult<T>>;
+    validate(object: O): Q.Promise<ValidationResult<O>>;
 }
-export declare class ArrayValidator implements Validator {
-    validator: Validator;
-    constructor(validator: Validator);
+export declare class ArrayValidator<O> implements Validator<O[]> {
+    validator: Validator<O>;
+    constructor(validator: Validator<O>);
     validatePath<T>(oldValue: T, path: string, newValue?: any, context?: any): Q.Promise<ValidationResult<T>>;
-    validate<T>(arr: T[]): Q.Promise<ValidationResult<T>>;
+    validate(arr: O[]): Q.Promise<ValidationResult<O[]>>;
 }

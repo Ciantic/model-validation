@@ -4,6 +4,57 @@
 var V = require("../index");
 var assert = require("assert");
 describe("Validations", function () {
+    describe("Validation functions", function () {
+        it("required", function () {
+            assert.equal(V.required("yes"), "yes");
+            try {
+                V.required("");
+            }
+            catch (f) {
+                assert.equal(f, "This field is required");
+            }
+        });
+        it("string", function () {
+            assert.strictEqual(V.string(1.23), "1.23");
+        });
+        it("integer", function () {
+            assert.strictEqual(V.integer(3.14), 3);
+            assert.strictEqual(V.integer("3.14"), 3);
+            assert.strictEqual(V.integer(undefined), 0);
+        });
+        it("float", function () {
+            assert.strictEqual(V.float(3.14), 3.14);
+            assert.strictEqual(V.float("3.14"), 3.14);
+            assert.strictEqual(V.float(undefined), 0);
+        });
+        it("isString", function () {
+            assert.strictEqual(V.isString("word"), "word");
+            try {
+                V.isString(3.14);
+            }
+            catch (f) {
+                assert.equal(f, "Must be a string");
+            }
+        });
+        it("isInteger", function () {
+            assert.strictEqual(V.isInteger(3), 3);
+            try {
+                V.isInteger(3.14);
+            }
+            catch (f) {
+                assert.equal(f, "Must be an integer");
+            }
+        });
+        it("isFloat", function () {
+            assert.strictEqual(V.isFloat("3.14"), 3.14);
+            try {
+                V.isFloat("a");
+            }
+            catch (f) {
+                assert.equal(f, "Must be an decimal number");
+            }
+        });
+    });
     describe("Validator creation", function () {
         it("should create object validators", function () {
             var validator = V.validator({
@@ -40,7 +91,7 @@ describe("Validations", function () {
             };
             return V.validator({
                 "id": V.integer,
-                "name": function (i) { return V.required(V.str(i)); },
+                "name": function (i) { return V.required(V.string(i)); },
                 "age": function (i) { return V.required(V.float(i)); },
             }).validatePath(obj, "name", "Cameleont").then(function (res) {
                 assert.equal(res.isValid, true);
@@ -60,7 +111,7 @@ describe("Validations", function () {
             };
             return V.validator({
                 "id": V.integer,
-                "name": function (i) { return V.required(V.str(i)); },
+                "name": function (i) { return V.required(V.string(i)); },
                 "age": function (i) { return V.required(V.float(i)); },
             }).validatePath(obj, "name", "").then(function (res) {
                 assert.deepEqual(res.errors, { "name": ["This field is required"] });
@@ -74,11 +125,12 @@ describe("Validations", function () {
         });
         it("should give object back when not validating", function () {
             var obj = { "not a valid": true };
-            return V.validator({
+            var userValidator = V.validator({
                 "id": V.integer,
-                "name": function (i) { return V.required(V.str(i)); },
+                "name": function (i) { return V.required(V.string(i)); },
                 "age": function (i) { return V.required(V.float(i)); },
-            }).validatePath(obj, "name", "").then(function (res) {
+            });
+            return userValidator.validatePath(obj, "name", "").then(function (res) {
                 assert.equal(res.isValid, false);
                 assert.deepEqual(res.value, { "not a valid": true });
                 assert.deepEqual(res.errors, { "name": ["This field is required"] });
@@ -86,7 +138,7 @@ describe("Validations", function () {
         });
         it("should be able to access object", function () {
             return V.validator({
-                "product": function (i) { return V.required(V.str(i)); },
+                "product": function (i) { return V.required(V.string(i)); },
                 "price": function (i, o) { if (o.product != "pizza")
                     throw o.product + " is not a pizza"; return 7.95; },
             }).validate({
@@ -103,7 +155,7 @@ describe("Validations", function () {
         });
         it("should be able to raise error by object value", function () {
             return V.validator({
-                "product": function (i) { return V.required(V.str(i)); },
+                "product": function (i) { return V.required(V.string(i)); },
                 "price": function (i, o) { if (o.product != "pizza")
                     throw o.product + " is not a pizza"; return 7.95; },
             }).validate({
@@ -128,7 +180,7 @@ describe("Validations", function () {
             };
             return V.validator({
                 "id": V.integer,
-                "name": function (i) { return V.required(V.str(i)); },
+                "name": function (i) { return V.required(V.string(i)); },
                 "age": function (i) { return V.required(V.float(i)); },
             }).validate(obj).then(function (res) {
                 assert.equal(res.isValid, true);
@@ -144,7 +196,7 @@ describe("Validations", function () {
             };
             return V.validator({
                 "id": V.integer,
-                "name": function (i) { return V.required(V.str(i)); },
+                "name": function (i) { return V.required(V.string(i)); },
                 "age": function (i) { return V.required(V.float(i)); },
             }).validate(obj).then(function (res) {
                 assert.equal(res.isValid, false);
@@ -164,7 +216,7 @@ describe("Validations", function () {
             };
             return V.validator({
                 "id": V.integer,
-                "name": function (i) { return V.required(V.str(i)); },
+                "name": function (i) { return V.required(V.string(i)); },
                 "age": function (i) { return V.required(V.float(i)); },
             }).validate(obj).then(function (res) {
                 assert.equal(res.isValid, true);
@@ -183,7 +235,7 @@ describe("Validations", function () {
             };
             return V.validator({
                 "id": V.integer,
-                "name": function (i) { return V.required(V.str(i)); },
+                "name": function (i) { return V.required(V.string(i)); },
                 "age": function (i) { return V.float(i); },
             }).validate(obj).then(function (res) {
                 assert.equal(res.isValid, true);
@@ -206,10 +258,10 @@ describe("Validations", function () {
                 }
             };
             return V.validator({
-                "name": function (i) { return V.required(V.str(i)); },
+                "name": function (i) { return V.required(V.string(i)); },
                 "address": {
-                    "street": V.str,
-                    "city": function (i) { return V.required(V.str(i)); }
+                    "street": V.string,
+                    "city": function (i) { return V.required(V.string(i)); }
                 }
             }).validatePath(obj, "address", {
                 "street": "Backalley 321",
@@ -235,10 +287,10 @@ describe("Validations", function () {
                 }
             };
             return V.validator({
-                "name": function (i) { return V.required(V.str(i)); },
+                "name": function (i) { return V.required(V.string(i)); },
                 "address": {
-                    "street": function (i) { return V.required(V.str(i)); },
-                    "city": function (i) { return V.required(V.str(i)); }
+                    "street": function (i) { return V.required(V.string(i)); },
+                    "city": function (i) { return V.required(V.string(i)); }
                 }
             }).validatePath(obj, "address.city", "Otherville").then(function (res) {
                 assert.deepEqual(res.errors, {});
@@ -253,7 +305,7 @@ describe("Validations", function () {
             });
         });
         it("should work with a dot notation even when zero is key", function () {
-            return V.validator({ "0": V.str }).validatePath({ "0": "Okay" }, "0", "Something else").then(function (res) {
+            return V.validator({ "0": V.string }).validatePath({ "0": "Okay" }, "0", "Something else").then(function (res) {
                 assert.deepEqual(res.errors, {});
                 assert.equal(res.isValid, true);
                 assert.deepEqual(res.value, { "0": "Something else" });
@@ -268,10 +320,10 @@ describe("Validations", function () {
                 }
             };
             return V.validator({
-                "name": function (i) { return V.required(V.str(i)); },
+                "name": function (i) { return V.required(V.string(i)); },
                 "address": {
-                    "street": function (i) { return V.required(V.str(i)); },
-                    "city": function (i) { return V.required(V.str(i)); }
+                    "street": function (i) { return V.required(V.string(i)); },
+                    "city": function (i) { return V.required(V.string(i)); }
                 }
             }).validatePath(obj, "address", {
                 "street": "",
@@ -333,7 +385,7 @@ describe("Validations", function () {
     describe("Array validation", function () {
         it("of simple functions should work", function () {
             var arr = ["first", "second"];
-            return V.validator([V.str]).validate(arr).then(function (res) {
+            return V.validator([V.string]).validate(arr).then(function (res) {
                 assert.deepEqual(res.errors, {});
                 assert.equal(res.isValid, true);
                 assert.deepEqual(res.value, arr);
@@ -349,7 +401,7 @@ describe("Validations", function () {
                     age: 13
                 }];
             return V.validator([{
-                    "name": function (i) { return V.required(V.str(i)); },
+                    "name": function (i) { return V.required(V.string(i)); },
                     "age": V.float
                 }]).validate(objs).then(function (res) {
                 assert.deepEqual(res.errors, {});
@@ -359,7 +411,7 @@ describe("Validations", function () {
         });
         it("of simple functios should raise errors", function () {
             var arr = ["", ""];
-            return V.validator([function (i) { return V.required(V.str(i)); }]).validate(arr).then(function (res) {
+            return V.validator([function (i) { return V.required(V.string(i)); }]).validate(arr).then(function (res) {
                 assert.deepEqual(res.errors, { "[0]": ["This field is required"], "[1]": ["This field is required"] });
                 assert.equal(res.isValid, false);
                 assert.deepEqual(res.value, arr);
@@ -367,7 +419,7 @@ describe("Validations", function () {
         });
         it("of arrays should raise errors", function () {
             var arr = [[["", ""]]];
-            return V.validator([[[function (i) { return V.required(V.str(i)); }]]])
+            return V.validator([[[function (i) { return V.required(V.string(i)); }]]])
                 .validate(arr).then(function (res) {
                 assert.deepEqual(res.errors, {
                     "[0][0][0]": ["This field is required"],
@@ -382,7 +434,7 @@ describe("Validations", function () {
         it("should work", function () {
             var thing = { "aaa": [{ "bbb": [{ "ccc": "thingie" }] }] };
             return V.validator({
-                "aaa": [{ "bbb": [{ "ccc": function (i) { return V.required(V.str(i)); } }] }]
+                "aaa": [{ "bbb": [{ "ccc": function (i) { return V.required(V.string(i)); } }] }]
             }).validate(thing).then(function (res) {
                 assert.deepEqual(res.errors, {});
                 assert.equal(res.isValid, true);
@@ -392,7 +444,7 @@ describe("Validations", function () {
         it("should raise errors", function () {
             var thing = { "aaa": [{ "bbb": [{ "ccc": "" }] }] };
             return V.validator({
-                "aaa": [{ "bbb": [{ "ccc": function (i) { return V.required(V.str(i)); } }] }]
+                "aaa": [{ "bbb": [{ "ccc": function (i) { return V.required(V.string(i)); } }] }]
             }).validate(thing).then(function (res) {
                 assert.deepEqual(res.errors, {
                     "aaa[0].bbb[0].ccc": ["This field is required"]
