@@ -10,12 +10,12 @@ function buildValidator(validFunc, parent) {
     if (_.isFunction(validFunc)) {
         return new FuncValidator(validFunc, parent);
     }
-    else if (_.isObject(validFunc) && "validate" in validFunc && "validatePath" in validFunc) {
+    else if (_.isObject(validFunc) && _.isFunction(validFunc.validate) && _.isFunction(validFunc.validatePath)) {
         return validFunc;
     }
     else if (_.isPlainObject(validFunc)) {
-        var validFuncCopy = _.cloneDeep(validFunc);
-        _.each(validFuncCopy, function (v, k) {
+        var validFuncCopy = {};
+        _.each(validFunc, function (v, k) {
             validFuncCopy[k] = buildValidator(v);
         });
         return new ObjectValidator(validFuncCopy);

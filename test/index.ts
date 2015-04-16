@@ -10,12 +10,6 @@ import V = require("../index");
 declare var require: any;
 var assert = require("assert");
 
-interface User {
-    id: number
-    name: string
-    age: number
-}
-
 describe("Validations", function() {
     describe("Validation functions", function() {
         it("required", () => {
@@ -97,6 +91,19 @@ describe("Validations", function() {
             var validator = <any> V.validator([V.integer]);
             assert.equal(validator instanceof V.ArrayValidator, true);
             assert.equal(validator.validator instanceof V.FuncValidator, true);
+        });
+        
+        
+        it("should allow composability of validators", () => {
+            var firstValidator = V.validator({
+                'b' : V.integer
+            });
+            var validator = <any> V.validator({
+                'a' : firstValidator
+            });
+            assert.equal("first_" + (validator instanceof V.ObjectValidator), "first_true");
+            assert.equal("second_" + (validator.fields['a'] instanceof V.ObjectValidator), "second_true");
+            assert.equal("third_" + (validator.fields['a'].fields['b'] instanceof V.FuncValidator), "third_true");
         });
     });
     describe("Object path validation", function() {

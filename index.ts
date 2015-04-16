@@ -40,12 +40,12 @@ function buildValidator<O>(validFunc: any, parent?: any): Validator<O> {
     if (_.isFunction(validFunc)) {
         return new FuncValidator<O>(<ValidationFunction> validFunc, parent);
     // Looks like a Validator
-    } else if (_.isObject(validFunc) && "validate" in validFunc && "validatePath" in validFunc) {
+    } else if (_.isObject(validFunc) && _.isFunction(validFunc.validate) && _.isFunction(validFunc.validatePath)) {
         return <Validator<O>> validFunc;
     // Is ObjectValidator masquerading as object
     } else if (_.isPlainObject(validFunc)) {
-        var validFuncCopy = _.cloneDeep(validFunc);
-        _.each(validFuncCopy, (v, k) => {
+        var validFuncCopy = {}; //_.cloneDeep(validFunc);
+        _.each(validFunc, (v, k) => {
             validFuncCopy[k] = buildValidator<O>(v);
         });
         return new ObjectValidator<O>(<{ [name: string] : Validator<any> }> validFuncCopy);

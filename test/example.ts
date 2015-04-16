@@ -1,12 +1,4 @@
-# model-validation
-
-Experimental, see test/index.js for specs.
-
-
-## Example
-
-```typescript
-import V = require("model-validation");
+import V = require("../index");
 
 interface Address {
     city : string
@@ -45,4 +37,3 @@ userValidator.validate({
 }).catch((errs) => {
     // errs is object of errors {[name: string] : string[]}
 });
-```
