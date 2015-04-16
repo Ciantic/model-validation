@@ -12,15 +12,15 @@ export type ErrorMessages = {
     [name: string] : string[]
 }
 
-export interface Validator<O> {
-    validate(value: O): Q.Promise<ValidationResult<O>>;
-    validatePath<T>(oldValue: T, path: string, newValue?: any, context?: any): Q.Promise<ValidationResult<T>>;
+export interface ValidationPromise<T> extends Q.Promise<T> {
+    then(onFullFill: (v: T) => any): ValidationPromise<T>
+    catch(onFailure: (v: ErrorMessages) => any): ValidationPromise<T>
+    notify(onNotify: (v: {}) => any): ValidationPromise<T>
 }
 
-export interface ValidationResult<T> {
-    isValid: boolean
-    value: T
-    errors: ErrorMessages
+export interface Validator<O> {
+    validate(value: O): ValidationPromise<O>;
+    validatePath<T>(oldValue: T, path: string, newValue?: any, context?: any): ValidationPromise<T>;
 }
 
 export type ValidationFunction = (input: any, context?: any) => any;
@@ -112,51 +112,31 @@ export class FuncValidator<O> implements Validator<O> {
     }
     
     validatePath<T>(oldValue: T, path: string, newValue?: any, context?: any):
-        Q.Promise<ValidationResult<T>>
+        ValidationPromise<T>
     {
         if (path !== "") {
-            return Q.reject<ValidationResult<T>>({
-                isValid : false,
-                value : oldValue,
-                errors : {"" : ["Function validator does not recognize this path:" + path]}
-            });
+            return <any> Q.reject<T>({"" : ["Function validator does not recognize this path:" + path]});
         }
         
-        var deferred = Q.defer<ValidationResult<T>>();
+        var deferred = Q.defer<T>();
         try {
-            return Q.resolve<ValidationResult<T>>({
-                isValid : true,
-                errors : {},
-                value : this.func(newValue, context)
-            });
+            return <ValidationPromise<T>> Q.resolve<T>(this.func(newValue, context));
         } catch (e) {
-            return Q.resolve<ValidationResult<T>>({
-                isValid : false,
-                errors : {"" : [e]},
-                value : oldValue
-            });
+            return <ValidationPromise<T>> Q.reject<T>({"" : [e]});
         }
     }
     
-    validate(value: O): Q.Promise<ValidationResult<O>> {
+    validate(value: O): ValidationPromise<O> {
         var copy = _.cloneDeep(value),
-            deferred = Q.defer<ValidationResult<O>>();
+            deferred = Q.defer<O>();
         
         try {
-            deferred.resolve({
-                isValid : true,
-                errors : {},
-                value : this.func(copy)
-            });
+            deferred.resolve(this.func(copy));
         } catch (e) {
-            deferred.resolve({
-                isValid : false,
-                errors :  {"" : [e]},
-                value : copy
-            });
+            deferred.reject({"" : [e]});
         }
         
-        return deferred.promise;
+        return <ValidationPromise<O>> deferred.promise;
     }
 }
 
@@ -170,7 +150,7 @@ export class ObjectValidator<O> implements Validator<O> {
     }
     
     validatePath<T>(oldValue: T, path: string, newValue?: any, context?: any):
-        Q.Promise<ValidationResult<T>>
+        ValidationPromise<T>
     {
         if (path === "") {
             return <any> this.validate(newValue);
@@ -178,42 +158,34 @@ export class ObjectValidator<O> implements Validator<O> {
         
         var m = objectRegExp.exec(path);
         if (!m) {
-            return Q.reject<ValidationResult<T>>({
-                isValid : false,
-                value : oldValue,
-                errors : {"" : "Object validator does not recognize this path: " + path}
-            });
+            return <ValidationPromise<T>> Q.reject<T>({"" : "Object validator does not recognize this path: " + path});
         }
         
-        var deferred = Q.defer<ValidationResult<T>>(),
+        var deferred = Q.defer<T>(),
             [, field, remaining] = m,
             fieldValidator = <Validator<any>> this.fields[field],
             oldFieldValue = oldValue[field];
 
         fieldValidator.validatePath(oldFieldValue, remaining, newValue, context).then((res) => {
             var fieldErrors: ErrorMessages = {},
-                value = oldValue;
-            _.each(res.errors, (v, k) => {
-                fieldErrors[field + (k.length > 0 && k[0] !== "[" ? "." + k : k)] = v;
-            });
-            if (res.isValid) {
                 value = _.cloneDeep(oldValue);
-                value[field] = res.value;
-            }
-            deferred.resolve({
-                isValid : res.isValid,
-                value : value,
-                errors : fieldErrors
-            });
-        })
+            value[field] = res;
+            deferred.resolve(<any> value);
+        }).catch((errors) => {
+            var fieldErrors: ErrorMessages = {};
+           _.each(errors, (v: string[], k) => {
+               fieldErrors[field + (k.length > 0 && k[0] !== "[" ? "." + k : k)] = v;
+           });
+            deferred.reject(fieldErrors);
+        });
 
-        return deferred.promise;
+        return <ValidationPromise<T>> deferred.promise;
     }
     
-    validate(object: O): Q.Promise<ValidationResult<O>> {
+    validate(object: O): ValidationPromise<O> {
         var self = this,
-            defer = Q.defer<ValidationResult<O>>(),
-            dfields: Q.Promise<ValidationResult<O>>[] = [],
+            defer = Q.defer<O>(),
+            dfields: Q.Promise<O>[] = [],
             copy = _.pick(_.cloneDeep(object), _.keys(this.fields)),
             errors: ErrorMessages = {};
         
@@ -221,30 +193,21 @@ export class ObjectValidator<O> implements Validator<O> {
             var p = self.validatePath(object, k, object[k], object);
             dfields.push(p);
             p.then((res) => {
-                if (res.isValid) {
-                    copy[k] = res.value[k];
-                }
-                _.assign(errors, res.errors);
+                copy[k] = res[k];
+            }).catch((part_errors) => {
+                _.assign(errors, part_errors);
             });
         });
         
         // Error array filling assumes Q.all promise is resolved after all
         // individual promise callbacks has resolved
         Q.all(dfields).then((resz) => {
-            var isValid = true;
-            _.each(resz, (res) => {
-                if (!res.isValid) {
-                    isValid = false;
-                }
-            });
-            defer.resolve({
-                isValid : isValid,
-                value : <O> copy,
-                errors : <ErrorMessages> errors
-            });
+            defer.resolve(<any> copy);
+        }).catch((errs) => {
+            defer.reject(errors);
         });
         
-        return defer.promise;
+        return <ValidationPromise<O>> defer.promise;
     }
 }
 
@@ -257,7 +220,7 @@ export class ArrayValidator<O> implements Validator<O[]> {
     }
     
     validatePath<T>(oldValue: T, path: string, newValue?: any, context?: any):
-        Q.Promise<ValidationResult<T>>
+        ValidationPromise<T>
     {
         if (path === "") {
             return <any> this.validate(newValue);
@@ -268,29 +231,26 @@ export class ArrayValidator<O> implements Validator<O[]> {
             throw "Array validator does not recognize this path: " + path;
         }
         
-        var deferred = Q.defer<ValidationResult<T>>(),
+        var deferred = Q.defer<T>(),
             [, field, remaining] = m;
         
         this.validator.validatePath(oldValue, remaining, newValue, context).then((res) => {
+            deferred.resolve(res);
+        }).catch((err) => {
             var fieldErrors: ErrorMessages = {},
                 indexAccessor = "[" + field + "]";
             
-            _.each(res.errors, (v, k) => {
+            _.each(err, (v: string[], k) => {
                 fieldErrors[indexAccessor + (k.length > 0 && k[0] !== "[" ? "." + k : k)] = v;
             });
-            
-            deferred.resolve({
-                isValid : res.isValid,
-                value : res.isValid ? res.value : oldValue,
-                errors : fieldErrors
-            });
-        })
-        return deferred.promise;
+            deferred.reject(fieldErrors);
+        });
+        return <ValidationPromise<T>> deferred.promise;
     }
-    validate(arr: O[]): Q.Promise<ValidationResult<O[]>> {
+    validate(arr: O[]): ValidationPromise<O[]> {
         var self = this,
-            defer = Q.defer<ValidationResult<O[]>>(),
-            dfields: Q.Promise<ValidationResult<O>>[] = [],
+            defer = Q.defer<O[]>(),
+            dfields: Q.Promise<O>[] = [],
             copy = [],
             errors: ErrorMessages = {};
         
@@ -299,29 +259,20 @@ export class ArrayValidator<O> implements Validator<O[]> {
             var p = self.validatePath<O>(arr[k], "[" + k + "]", v, arr);
             dfields.push(p);
             p.then((res) => {
-                if (res.isValid) {
-                    copy[k] = res.value;
-                }
-                _.assign(errors, res.errors);
+                copy[k] = res;
+            }).catch((err) => {
+                _.assign(errors, err);
             });
         });
         
         // Error array filling assumes Q.all promise is resolved after all
         // individual promise callbacks has resolved
         Q.all(dfields).then((resz) => {
-            var isValid = true;
-            _.each(resz, (res) => {
-                if (!res.isValid) {
-                    isValid = false;
-                }
-            });
-            defer.resolve({
-                isValid : isValid,
-                value : isValid ? <any> copy : arr,
-                errors : <ErrorMessages> errors
-            });
+            defer.resolve(<any> copy);
+        }).catch((errs) => {
+            defer.reject(errors);
         });
         
-        return defer.promise;
+        return <ValidationPromise<O[]>> defer.promise;
     }
 }
