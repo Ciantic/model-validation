@@ -6,7 +6,7 @@
 /// <reference path="typings/q/Q.d.ts" />
 var _ = require("lodash");
 var Q = require("q");
-function getValidator(validFunc, parent) {
+function buildValidator(validFunc, parent) {
     if (_.isFunction(validFunc)) {
         return new FuncValidator(validFunc, parent);
     }
@@ -16,17 +16,17 @@ function getValidator(validFunc, parent) {
     else if (_.isPlainObject(validFunc)) {
         var validFuncCopy = _.cloneDeep(validFunc);
         _.each(validFuncCopy, function (v, k) {
-            validFuncCopy[k] = getValidator(v);
+            validFuncCopy[k] = buildValidator(v);
         });
         return new ObjectValidator(validFuncCopy);
     }
     else if (_.isArray(validFunc) && validFunc.length === 1) {
-        return new ArrayValidator(getValidator(validFunc[0]));
+        return new ArrayValidator(buildValidator(validFunc[0]));
     }
     throw "Validator is not defined for this field";
 }
 function validator(defs) {
-    return getValidator(defs);
+    return buildValidator(defs);
 }
 exports.validator = validator;
 function required(input, isNot) {
@@ -80,7 +80,7 @@ var FuncValidator = (function () {
             return Q.reject({
                 isValid: false,
                 value: oldValue,
-                errors: { "": ["Function validator does not recgonize this path:" + path] }
+                errors: { "": ["Function validator does not recognize this path:" + path] }
             });
         }
         var deferred = Q.defer();
@@ -120,7 +120,7 @@ var FuncValidator = (function () {
     return FuncValidator;
 })();
 exports.FuncValidator = FuncValidator;
-var objectRegExp = new RegExp('^([^\\.\\[\\]]+)[\\.]?(.*)');
+var objectRegExp = /^([^\.\[\]]+)[\.]?(.*)/;
 var ObjectValidator = (function () {
     function ObjectValidator(fields) {
         this.fields = fields;
@@ -134,7 +134,7 @@ var ObjectValidator = (function () {
             return Q.reject({
                 isValid: false,
                 value: oldValue,
-                errors: { "": "Object validator does not recgonize this path: " + path }
+                errors: { "": "Object validator does not recognize this path: " + path }
             });
         }
         var deferred = Q.defer(), field = m[1], remaining = m[2], fieldValidator = this.fields[field], oldFieldValue = oldValue[field];
@@ -185,7 +185,7 @@ var ObjectValidator = (function () {
     return ObjectValidator;
 })();
 exports.ObjectValidator = ObjectValidator;
-var arrayIndexRegExp = new RegExp('^\\[(\\d+)\\](.*)');
+var arrayIndexRegExp = /^\[(\d+)\](.*)/;
 var ArrayValidator = (function () {
     function ArrayValidator(validator) {
         this.validator = validator;
@@ -196,7 +196,7 @@ var ArrayValidator = (function () {
         }
         var m = arrayIndexRegExp.exec(path);
         if (!m) {
-            throw "Array validator does not recgonize this path: " + path;
+            throw "Array validator does not recognize this path: " + path;
         }
         var deferred = Q.defer(), field = m[1], remaining = m[2];
         this.validator.validatePath(oldValue, remaining, newValue, context).then(function (res) {

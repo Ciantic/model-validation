@@ -1,9 +1,8 @@
 /// <reference path="typings/lodash/lodash.d.ts" />
 /// <reference path="typings/q/Q.d.ts" />
 import Q = require("q");
-export declare type errorList = string[];
-export declare type errorMessages = {
-    [name: string]: errorList;
+export declare type ErrorMessages = {
+    [name: string]: string[];
 };
 export interface Validator<O> {
     validate(value: O): Q.Promise<ValidationResult<O>>;
@@ -12,9 +11,9 @@ export interface Validator<O> {
 export interface ValidationResult<T> {
     isValid: boolean;
     value: T;
-    errors: errorMessages;
+    errors: ErrorMessages;
 }
-export declare type validationFunction = (input: any, context?: any) => any;
+export declare type ValidationFunction = (input: any, context?: any) => any;
 export declare function validator<O>(defs: any): Validator<O>;
 export declare function required(input: any, isNot?: any): any;
 export declare function string(input: any): string;
@@ -24,8 +23,8 @@ export declare function isString(input: any): string;
 export declare function isInteger(input: any): number;
 export declare function isFloat(input: any): number;
 export declare class FuncValidator<O> implements Validator<O> {
-    func: validationFunction;
-    constructor(func: validationFunction, parent?: any);
+    func: ValidationFunction;
+    constructor(func: ValidationFunction, parent?: any);
     validatePath<T>(oldValue: T, path: string, newValue?: any, context?: any): Q.Promise<ValidationResult<T>>;
     validate(value: O): Q.Promise<ValidationResult<O>>;
 }

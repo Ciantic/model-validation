@@ -8,10 +8,8 @@
 import _ = require("lodash");
 import Q = require("q");
 
-export type errorList = string[]
-
-export type errorMessages = {
-    [name: string] : errorList
+export type ErrorMessages = {
+    [name: string] : string[]
 }
 
 export interface Validator<O> {
@@ -22,25 +20,25 @@ export interface Validator<O> {
 export interface ValidationResult<T> {
     isValid: boolean
     value: T
-    errors: errorMessages
+    errors: ErrorMessages
 }
 
-export type validationFunction = (input: any, context?: any) => any;
+export type ValidationFunction = (input: any, context?: any) => any;
 /*
 TODO: Does not work, recursive typing short circuits to any
       https://github.com/Microsoft/TypeScript/issues/647
 
 export type validatorDefinition =
-    validationFunction | Validator<any> | validationFunction[] | Validator<any>[] |
-    validationFunction[][] | Validator<any>[][] |
+    ValidationFunction | Validator<any> | ValidationFunction[] | Validator<any>[] |
+    ValidationFunction[][] | Validator<any>[][] |
     { [name: string] : (validatorDefinition) } |
     { [name: string] : (validatorDefinition) }[];
 */
 
-function getValidator<O>(validFunc: any, parent?: any): Validator<O> {
+function buildValidator<O>(validFunc: any, parent?: any): Validator<O> {
     // Is validator function
     if (_.isFunction(validFunc)) {
-        return new FuncValidator<O>(<validationFunction> validFunc, parent);
+        return new FuncValidator<O>(<ValidationFunction> validFunc, parent);
     // Looks like a Validator
     } else if (_.isObject(validFunc) && "validate" in validFunc && "validatePath" in validFunc) {
         return <Validator<O>> validFunc;
@@ -48,19 +46,19 @@ function getValidator<O>(validFunc: any, parent?: any): Validator<O> {
     } else if (_.isPlainObject(validFunc)) {
         var validFuncCopy = _.cloneDeep(validFunc);
         _.each(validFuncCopy, (v, k) => {
-            validFuncCopy[k] = getValidator<O>(v);
+            validFuncCopy[k] = buildValidator<O>(v);
         });
         return new ObjectValidator<O>(<{ [name: string] : Validator<any> }> validFuncCopy);
     // Is ArrayValidator masquerading as array
     } else if (_.isArray(validFunc) && validFunc.length === 1) {
-        return <any> new ArrayValidator(<any> getValidator(validFunc[0]));
+        return <any> new ArrayValidator(<any> buildValidator(validFunc[0]));
     }
     
     throw "Validator is not defined for this field";
 }
 
 export function validator<O>(defs: any): Validator<O> {
-    return <Validator<O>> getValidator(defs);
+    return <Validator<O>> buildValidator(defs);
 }
 
 export function required(input: any, isNot: any = false): any {
@@ -107,9 +105,9 @@ export function isFloat(input: any): number {
 }
 
 export class FuncValidator<O> implements Validator<O> {
-    func: validationFunction
+    func: ValidationFunction
     
-    constructor(func: validationFunction, parent?: any) {
+    constructor(func: ValidationFunction, parent?: any) {
         this.func = func;
     }
     
@@ -120,7 +118,7 @@ export class FuncValidator<O> implements Validator<O> {
             return Q.reject<ValidationResult<T>>({
                 isValid : false,
                 value : oldValue,
-                errors : {"" : ["Function validator does not recgonize this path:" + path]}
+                errors : {"" : ["Function validator does not recognize this path:" + path]}
             });
         }
         
@@ -162,7 +160,7 @@ export class FuncValidator<O> implements Validator<O> {
     }
 }
 
-var objectRegExp = new RegExp('^([^\\.\\[\\]]+)[\\.]?(.*)');
+var objectRegExp = /^([^\.\[\]]+)[\.]?(.*)/;
 
 export class ObjectValidator<O> implements Validator<O> {
     public fields: { [name: string] : Validator<any> }
@@ -177,23 +175,23 @@ export class ObjectValidator<O> implements Validator<O> {
         if (path === "") {
             return <any> this.validate(newValue);
         }
-        // TODO: Determine fields from this.fields when creating a ObjectValidator
-        // it's faster this way.
+        
         var m = objectRegExp.exec(path);
         if (!m) {
             return Q.reject<ValidationResult<T>>({
                 isValid : false,
                 value : oldValue,
-                errors : {"" : "Object validator does not recgonize this path: " + path}
+                errors : {"" : "Object validator does not recognize this path: " + path}
             });
         }
+        
         var deferred = Q.defer<ValidationResult<T>>(),
             [, field, remaining] = m,
             fieldValidator = <Validator<any>> this.fields[field],
             oldFieldValue = oldValue[field];
 
         fieldValidator.validatePath(oldFieldValue, remaining, newValue, context).then((res) => {
-            var fieldErrors: errorMessages = {},
+            var fieldErrors: ErrorMessages = {},
                 value = oldValue;
             _.each(res.errors, (v, k) => {
                 fieldErrors[field + (k.length > 0 && k[0] !== "[" ? "." + k : k)] = v;
@@ -217,7 +215,7 @@ export class ObjectValidator<O> implements Validator<O> {
             defer = Q.defer<ValidationResult<O>>(),
             dfields: Q.Promise<ValidationResult<O>>[] = [],
             copy = _.pick(_.cloneDeep(object), _.keys(this.fields)),
-            errors: errorMessages = {};
+            errors: ErrorMessages = {};
         
         _.each(this.fields, function(v, k) {
             var p = self.validatePath(object, k, object[k], object);
@@ -242,7 +240,7 @@ export class ObjectValidator<O> implements Validator<O> {
             defer.resolve({
                 isValid : isValid,
                 value : <O> copy,
-                errors : <errorMessages> errors
+                errors : <ErrorMessages> errors
             });
         });
         
@@ -250,7 +248,7 @@ export class ObjectValidator<O> implements Validator<O> {
     }
 }
 
-var arrayIndexRegExp = new RegExp('^\\[(\\d+)\\](.*)');
+var arrayIndexRegExp = /^\[(\d+)\](.*)/;
 
 export class ArrayValidator<O> implements Validator<O[]> {
     validator: Validator<O>
@@ -267,14 +265,14 @@ export class ArrayValidator<O> implements Validator<O[]> {
         
         var m = arrayIndexRegExp.exec(path);
         if (!m) {
-            throw "Array validator does not recgonize this path: " + path;
+            throw "Array validator does not recognize this path: " + path;
         }
         
         var deferred = Q.defer<ValidationResult<T>>(),
             [, field, remaining] = m;
         
         this.validator.validatePath(oldValue, remaining, newValue, context).then((res) => {
-            var fieldErrors: errorMessages = {},
+            var fieldErrors: ErrorMessages = {},
                 indexAccessor = "[" + field + "]";
             
             _.each(res.errors, (v, k) => {
@@ -294,7 +292,7 @@ export class ArrayValidator<O> implements Validator<O[]> {
             defer = Q.defer<ValidationResult<O[]>>(),
             dfields: Q.Promise<ValidationResult<O>>[] = [],
             copy = [],
-            errors: errorMessages = {};
+            errors: ErrorMessages = {};
         
         _.each(arr, function(v, k) {
             
@@ -320,7 +318,7 @@ export class ArrayValidator<O> implements Validator<O[]> {
             defer.resolve({
                 isValid : isValid,
                 value : isValid ? <any> copy : arr,
-                errors : <errorMessages> errors
+                errors : <ErrorMessages> errors
             });
         });
         
