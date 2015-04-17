@@ -3,10 +3,10 @@ var V = require("../index");
 // Validation definition
 var userValidator = V.validator({
     id : V.integer,
-    name : function(i) { return V.required(V.string(i)); },
+    name : V.required(V.string),
     email : V.string,
     address : {
-        city : function(i) { return V.required(V.string(i)); },
+        city : V.required(V.string),
         address : V.string,
     }
 });

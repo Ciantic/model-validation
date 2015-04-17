@@ -31,6 +31,11 @@ function validator(defs) {
 exports.validator = validator;
 function required(input, isNot) {
     if (isNot === void 0) { isNot = false; }
+    if (_.isFunction(input)) {
+        return function (i, c) {
+            return required(input(i, c));
+        };
+    }
     if (input == isNot) {
         throw "This field is required";
     }

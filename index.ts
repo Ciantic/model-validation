@@ -62,6 +62,13 @@ export function validator<O>(defs: any): Validator<O> {
 }
 
 export function required(input: any, isNot: any = false): any {
+    // Function as argument
+    if (_.isFunction(input)) {
+        return (i, c) => {
+            return required(input(i, c));
+        };
+    }
+    
     if (input == isNot) {
         throw "This field is required";
     }

@@ -14,6 +14,15 @@ describe("Validations", function () {
                 assert.equal(f, "This field is required");
             }
         });
+        it("required with function", function () {
+            assert.equal(V.required(V.string)("yes"), "yes");
+            try {
+                V.required(V.string)("");
+            }
+            catch (f) {
+                assert.equal(f, "This field is required");
+            }
+        });
         it("string", function () {
             assert.strictEqual(V.string(1.23), "1.23");
         });
@@ -102,8 +111,8 @@ describe("Validations", function () {
             };
             return V.validator({
                 "id": V.integer,
-                "name": function (i) { return V.required(V.string(i)); },
-                "age": function (i) { return V.required(V.float(i)); },
+                "name": V.required(V.string),
+                "age": V.required(V.float),
             }).validatePath(obj, "name", "Cameleont").then(function (res) {
                 assert.deepEqual(res, {
                     id: 123,
