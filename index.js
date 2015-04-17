@@ -54,7 +54,7 @@ function operator(op, input) {
     }
     else if (typeof input === "undefined") {
         return function (i, c) {
-            return operator.apply(void 0, [op, i].concat(args));
+            return operator.apply(void 0, [op, i, c].concat(args));
         };
     }
     return op.apply(void 0, [input].concat(args));
@@ -66,7 +66,7 @@ function min(val, input) {
             throw "Value must be at least: " + val;
         }
         return input;
-    }, input, val);
+    }, input);
 }
 exports.min = min;
 function max(val, input) {
@@ -75,9 +75,18 @@ function max(val, input) {
             throw "Value must not be greater than: " + val;
         }
         return input;
-    }, input, val);
+    }, input);
 }
 exports.max = max;
+function between(min, max, input) {
+    return operator(function (input) {
+        if (input <= min || input >= max) {
+            throw "Value must be between " + min + " and " + max;
+        }
+        return input;
+    }, input);
+}
+exports.between = between;
 function string(input) {
     return "" + input;
 }
@@ -91,25 +100,30 @@ function float(input) {
 }
 exports.float = float;
 function isString(input) {
-    if (!_.isString(input)) {
-        throw "Must be a string";
+    if (_.isString(input)) {
+        return input;
     }
-    return input;
+    throw "Must be a string";
 }
 exports.isString = isString;
 function isInteger(input) {
-    if (_.isString(input) && !/\d+/.exec(input) ||
-        _.isNumber(input) && parseInt(input) !== input) {
-        throw "Must be an integer";
+    if (_.isString(input) && /^\d+$/.exec(input)) {
+        return parseInt(input) || 0;
     }
-    return parseInt("" + input) || 0;
+    else if (_.isNumber(input) && parseInt(input) === input) {
+        return input;
+    }
+    throw "Must be an integer";
 }
 exports.isInteger = isInteger;
 function isFloat(input) {
-    if (_.isString(input) && !/\d+(\.\d+)?/.exec(input)) {
-        throw "Must be an decimal number";
+    if (_.isString(input) && /^\d+(\.\d+)?$/.exec(input)) {
+        return parseFloat(input) || 0.0;
     }
-    return parseFloat("" + input) || 0.0;
+    else if (_.isNumber(input)) {
+        return input;
+    }
+    throw "Must be an decimal number";
 }
 exports.isFloat = isFloat;
 var FuncValidator = (function () {

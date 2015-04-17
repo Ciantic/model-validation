@@ -19,6 +19,7 @@ export declare function required(input: any | ValidationFunction, isNot?: any): 
 export declare function operator(op: (input, ...args) => boolean, input?: any | ValidationFunction, ...args: any[]): any;
 export declare function min(val: number, input?: number | ValidationFunction): number | ValidationFunction;
 export declare function max(val: number, input?: number | ValidationFunction): number | ValidationFunction;
+export declare function between(min: number, max: number, input?: number | ValidationFunction): number | ValidationFunction;
 export declare function string(input: any): string;
 export declare function integer(input: any): number;
 export declare function float(input: any): number;

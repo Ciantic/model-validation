@@ -85,7 +85,7 @@ export function operator(op: (input, ...args) => boolean, input?: any|Validation
     } else if (typeof input === "undefined") {
         // Curried with no value
         return (i, c) => {
-            return (<any> operator)(op, i, ...args);
+            return (<any> operator)(op, i, c, ...args);
         };
     }
     return op(input, ...args);
@@ -97,7 +97,7 @@ export function min(val: number, input?: number|ValidationFunction) : number|Val
             throw "Value must be at least: " + val
         }
         return input;
-    }, input, val);
+    }, input);
 }
 
 export function max(val: number, input?: number|ValidationFunction) : number|ValidationFunction {
@@ -106,7 +106,16 @@ export function max(val: number, input?: number|ValidationFunction) : number|Val
             throw "Value must not be greater than: " + val
         }
         return input;
-    }, input, val);
+    }, input);
+}
+
+export function between(min: number, max: number, input?: number|ValidationFunction) : number|ValidationFunction {
+    return operator((input) => {
+        if (input <= min || input >= max) {
+            throw "Value must be between " + min + " and " + max
+        }
+        return input;
+    }, input);
 }
 
 export function string(input: any): string {
@@ -122,27 +131,29 @@ export function float(input: any): number {
 }
 
 export function isString(input: any): string {
-    if (!_.isString(input)) {
-        throw "Must be a string"
+    if (_.isString(input)) {
+        return input;
     }
-    return input;
+    throw "Must be a string"
 }
 
 export function isInteger(input: any): number {
-    if (_.isString(input) && !/\d+/.exec(input) ||
-        _.isNumber(input) && parseInt(input) !== input)
-    {
-        throw "Must be an integer"
+    if (_.isString(input) && /^\d+$/.exec(input)) {
+        return parseInt(input) || 0;
+    } else if (_.isNumber(input) && parseInt(input) === input) {
+        return input;
     }
-    return parseInt("" + input) || 0;
+    throw "Must be an integer"
 }
 
 export function isFloat(input: any): number {
-    if (_.isString(input) && !/\d+(\.\d+)?/.exec(input))
+    if (_.isString(input) && /^\d+(\.\d+)?$/.exec(input))
     {
-        throw "Must be an decimal number"
+        return parseFloat(input) || 0.0;
+    } else if (_.isNumber(input)) {
+        return input;
     }
-    return parseFloat("" + input) || 0.0;
+    throw "Must be an decimal number"
 }
 
 export class FuncValidator<O> implements Validator<O> {

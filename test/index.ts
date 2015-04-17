@@ -136,6 +136,35 @@ describe("Validations", function() {
                 assert.equal(e, "Value must not be greater than: 5");
             }
         });
+        
+        it("between", () => {
+            assert.strictEqual(V.between(50, 100, 70), 70);
+            assert.strictEqual((<any> (V.between(50, 100, V.float)))(70), 70);
+            assert.strictEqual((<any> (V.between(50, 100)))(70), 70);
+            assert.strictEqual((<any> (V.between(50, 100, (i) => {
+                // Makes sure this part is being run
+                return 70;
+            })))(null), 70);
+            
+            try {
+                V.between(50, 100, 10);
+                throw "Must not run"
+            } catch (e) {
+                assert.equal(e, "Value must be between 50 and 100");
+            }
+            try {
+                (<any> (V.between(50, 100, V.float)))(10);
+                throw "Must not run"
+            } catch (e) {
+                assert.equal(e, "Value must be between 50 and 100");
+            }
+            try {
+                (<any> (V.between(50, 100)))(10);
+                throw "Must not run"
+            } catch (e) {
+                assert.equal(e, "Value must be between 50 and 100");
+            }
+        });
     });
     describe("Validator creation", function() {
         it("should create object validators", () => {
