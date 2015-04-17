@@ -1,6 +1,6 @@
 {
   "name": "model-validation",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Validate models",
   "dependencies": {
     "lodash": "^3.6.0",
