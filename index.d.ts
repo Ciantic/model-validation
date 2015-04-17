@@ -15,7 +15,7 @@ export interface Validator<O> {
 }
 export declare type ValidationFunction = (input: any, context?: any) => any;
 export declare function validator<O>(defs: any): Validator<O>;
-export declare function required(input: any, isNot?: any): any;
+export declare function required(input: any, context?: any, isNot?: any): any;
 export declare function string(input: any): string;
 export declare function integer(input: any): number;
 export declare function float(input: any): number;

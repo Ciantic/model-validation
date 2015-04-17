@@ -61,11 +61,11 @@ export function validator<O>(defs: any): Validator<O> {
     return <Validator<O>> buildValidator(defs);
 }
 
-export function required(input: any, isNot: any = false): any {
+export function required(input: any, context?: any, isNot: any = false): any {
     // Function as argument
     if (_.isFunction(input)) {
         return (i, c) => {
-            return required(input(i, c));
+            return required(input(i, c), c, isNot);
         };
     }
     

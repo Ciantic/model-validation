@@ -29,11 +29,11 @@ function validator(defs) {
     return buildValidator(defs);
 }
 exports.validator = validator;
-function required(input, isNot) {
+function required(input, context, isNot) {
     if (isNot === void 0) { isNot = false; }
     if (_.isFunction(input)) {
         return function (i, c) {
-            return required(input(i, c));
+            return required(input(i, c), c, isNot);
         };
     }
     if (input == isNot) {
