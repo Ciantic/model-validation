@@ -29,11 +29,11 @@ function validator(defs) {
     return buildValidator(defs);
 }
 exports.validator = validator;
-function required(input, context, isNot) {
+function required(input, isNot) {
     if (isNot === void 0) { isNot = false; }
     if (_.isFunction(input)) {
         return function (i, c) {
-            return required(input(i, c), c, isNot);
+            return required(input(i, c), isNot);
         };
     }
     if (input == isNot) {
@@ -42,6 +42,42 @@ function required(input, context, isNot) {
     return input;
 }
 exports.required = required;
+function operator(op, input) {
+    var args = [];
+    for (var _i = 2; _i < arguments.length; _i++) {
+        args[_i - 2] = arguments[_i];
+    }
+    if (_.isFunction(input)) {
+        return function (i, c) {
+            return operator.apply(void 0, [op, input(i, c)].concat(args));
+        };
+    }
+    else if (typeof input === "undefined") {
+        return function (i, c) {
+            return operator.apply(void 0, [op, i].concat(args));
+        };
+    }
+    return op.apply(void 0, [input].concat(args));
+}
+exports.operator = operator;
+function min(val, input) {
+    return operator(function (input) {
+        if (input <= val) {
+            throw "Value must be at least: " + val;
+        }
+        return input;
+    }, input, val);
+}
+exports.min = min;
+function max(val, input) {
+    return operator(function (input) {
+        if (input >= val) {
+            throw "Value must not be greater than: " + val;
+        }
+        return input;
+    }, input, val);
+}
+exports.max = max;
 function string(input) {
     return "" + input;
 }

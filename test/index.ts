@@ -28,9 +28,9 @@ describe("Validations", function() {
             try {
                 V.required((i,c) => {
                     assert.equal(c, "context");
-                    assert.equal(i, "");
-                    return "";
-                })("", "context");
+                    assert.equal(i, "falzy");
+                    return "falzy";
+                }, "falzy")("falzy", "context");
                 throw "Must not run";
             } catch (e) {
                 assert.equal(e, "This field is required");
@@ -78,6 +78,62 @@ describe("Validations", function() {
                 throw "Must not run";
             } catch (f) {
                 assert.equal(f, "Must be an decimal number");
+            }
+        });
+        
+        it("min", () => {
+            assert.strictEqual(V.min(5, 100), 100);
+            assert.strictEqual((<any> (V.min(5, V.float)))(100), 100);
+            assert.strictEqual((<any> (V.min(5)))(100), 100);
+            assert.strictEqual((<any> (V.min(5, (i) => {
+                // Makes sure this part is being run
+                return 100;
+            })))(null), 100);
+            try {
+                V.min(5, 4);
+                throw "Must not run"
+            } catch (e) {
+                assert.equal(e, "Value must be at least: 5");
+            }
+            try {
+                (<any> (V.min(5, V.float)))(4);
+                throw "Must not run"
+            } catch (e) {
+                assert.equal(e, "Value must be at least: 5");
+            }
+            try {
+                (<any> (V.min(5)))(4);
+                throw "Must not run"
+            } catch (e) {
+                assert.equal(e, "Value must be at least: 5");
+            }
+        });
+        
+        it("max", () => {
+            assert.strictEqual(V.max(100, 5), 5);
+            assert.strictEqual((<any> (V.max(100, V.float)))(5), 5);
+            assert.strictEqual((<any> (V.max(100)))(5), 5);
+            assert.strictEqual((<any> (V.max(100, (i) => {
+                // Makes sure this part is being run
+                return 5;
+            })))(null), 5);
+            try {
+                V.max(5, 10);
+                throw "Must not run"
+            } catch (e) {
+                assert.equal(e, "Value must not be greater than: 5");
+            }
+            try {
+                (<any> (V.max(5, V.float)))(10);
+                throw "Must not run"
+            } catch (e) {
+                assert.equal(e, "Value must not be greater than: 5");
+            }
+            try {
+                (<any> (V.max(5)))(10);
+                throw "Must not run"
+            } catch (e) {
+                assert.equal(e, "Value must not be greater than: 5");
             }
         });
     });
