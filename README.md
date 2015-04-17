@@ -36,6 +36,7 @@ userValidator.validate({
 ## Example with TypeScript and composition
 
 ```typescript
+/// <reference path="node_modules/model-validation/index.d.ts" />
 import V = require("model-validation");
 
 interface Address {
