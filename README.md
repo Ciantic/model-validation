@@ -13,7 +13,7 @@ interface Address {
     address : string
 }
 
-var addressValidator = V.validator<User>({
+var addressValidator = V.validator<Address>({
     city : (i) => V.required(V.string(i)),
     address : V.string,
 });
