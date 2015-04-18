@@ -15,8 +15,8 @@ export interface Validator<O> {
 }
 export declare type ValidationFunction = (input: any, context?: any) => any;
 export declare function validator<O>(defs: any): Validator<O>;
-export declare function required(input: any | ValidationFunction, isNot?: any): any | ValidationFunction;
 export declare function operator(op: (input, ...args) => boolean, input?: any | ValidationFunction, ...args: any[]): any;
+export declare function required(input: any | ValidationFunction, isNot?: any): any | ValidationFunction;
 export declare function min(val: number, input?: number | ValidationFunction): number | ValidationFunction;
 export declare function max(val: number, input?: number | ValidationFunction): number | ValidationFunction;
 export declare function between(min: number, max: number, input?: number | ValidationFunction): number | ValidationFunction;

@@ -29,19 +29,6 @@ function validator(defs) {
     return buildValidator(defs);
 }
 exports.validator = validator;
-function required(input, isNot) {
-    if (isNot === void 0) { isNot = false; }
-    if (_.isFunction(input)) {
-        return function (i, c) {
-            return required(input(i, c), isNot);
-        };
-    }
-    if (input == isNot) {
-        throw "This field is required";
-    }
-    return input;
-}
-exports.required = required;
 function operator(op, input) {
     var args = [];
     for (var _i = 2; _i < arguments.length; _i++) {
@@ -53,29 +40,39 @@ function operator(op, input) {
         };
     }
     else if (typeof input === "undefined") {
-        return function (i, c) {
-            return operator.apply(void 0, [op, i, c].concat(args));
+        return function (i) {
+            return operator.apply(void 0, [op, i].concat(args));
         };
     }
     return op.apply(void 0, [input].concat(args));
 }
 exports.operator = operator;
+function required(input, isNot) {
+    if (isNot === void 0) { isNot = false; }
+    return operator(function (input, isNot) {
+        if (input == isNot) {
+            throw "This field is required";
+        }
+        return input;
+    }, input, isNot);
+}
+exports.required = required;
 function min(val, input) {
-    return operator(function (input) {
+    return operator(function (input, val) {
         if (input <= val) {
             throw "Value must be at least: " + val;
         }
         return input;
-    }, input);
+    }, input, val);
 }
 exports.min = min;
 function max(val, input) {
-    return operator(function (input) {
+    return operator(function (input, val) {
         if (input >= val) {
             throw "Value must not be greater than: " + val;
         }
         return input;
-    }, input);
+    }, input, val);
 }
 exports.max = max;
 function between(min, max, input) {

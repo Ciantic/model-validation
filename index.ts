@@ -61,20 +61,6 @@ export function validator<O>(defs: any): Validator<O> {
     return <Validator<O>> buildValidator(defs);
 }
 
-export function required(input: any|ValidationFunction, isNot: any = false): any|ValidationFunction {
-    // Function as argument
-    if (_.isFunction(input)) {
-        return (i, c) => {
-            return required(input(i, c), isNot);
-        };
-    }
-    
-    if (input == isNot) {
-        throw "This field is required";
-    }
-    return input;
-}
-
 export function operator(op: (input, ...args) => boolean, input?: any|ValidationFunction, ...args): any {
     // Function as argument
     if (_.isFunction(input)) {
@@ -84,29 +70,38 @@ export function operator(op: (input, ...args) => boolean, input?: any|Validation
         };
     } else if (typeof input === "undefined") {
         // Curried with no value
-        return (i, c) => {
-            return (<any> operator)(op, i, c, ...args);
+        return (i) => {
+            return (<any> operator)(op, i, ...args);
         };
     }
     return op(input, ...args);
 }
 
+export function required(input: any|ValidationFunction, isNot: any = false): any|ValidationFunction {
+    return operator((input, isNot) => {
+        if (input == isNot) {
+            throw "This field is required";
+        }
+        return input;
+    }, input, isNot);
+}
+
 export function min(val: number, input?: number|ValidationFunction) : number|ValidationFunction {
-    return operator((input) => {
+    return operator((input, val) => {
         if (input <= val) {
             throw "Value must be at least: " + val
         }
         return input;
-    }, input);
+    }, input, val);
 }
 
 export function max(val: number, input?: number|ValidationFunction) : number|ValidationFunction {
-    return operator((input) => {
+    return operator((input, val) => {
         if (input >= val) {
             throw "Value must not be greater than: " + val
         }
         return input;
-    }, input);
+    }, input, val);
 }
 
 export function between(min: number, max: number, input?: number|ValidationFunction) : number|ValidationFunction {

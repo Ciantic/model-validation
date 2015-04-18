@@ -16,6 +16,7 @@
         "./examples/with-react/index.ts",
         "./index.d.ts",
         "./index.ts",
+        "./test/example-with-typescript.d.ts",
         "./test/example-with-typescript.ts",
         "./test/example.d.ts",
         "./test/index.d.ts",
