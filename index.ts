@@ -58,7 +58,7 @@ function buildValidator<O>(validFunc: any, parent?: any): Validator<O> {
 }
 
 export function validator<O>(defs: any): Validator<O> {
-    return <Validator<O>> buildValidator(defs);
+    return buildValidator<O>(defs);
 }
 
 export function operator(op: (input, ...args) => boolean, input?: any|ValidationFunction, ...args): any {
