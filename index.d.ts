@@ -29,6 +29,7 @@ export declare function isFloat(input: any): number;
 export declare class FuncValidator<O> implements Validator<O> {
     func: ValidationFunction;
     constructor(func: ValidationFunction, parent?: any);
+    private _callFunc<T>(val, context?);
     validatePath<T>(oldValue: T, path: string, newValue?: any, context?: any): ValidationPromise<T>;
     validate(value: O): ValidationPromise<O>;
 }

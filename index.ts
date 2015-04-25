@@ -142,8 +142,7 @@ export function isInteger(input: any): number {
 }
 
 export function isFloat(input: any): number {
-    if (_.isString(input) && /^\d+(\.\d+)?$/.exec(input))
-    {
+    if (_.isString(input) && /^\d+(\.\d+)?$/.exec(input)) {
         return parseFloat(input) || 0.0;
     } else if (_.isNumber(input)) {
         return input;
@@ -158,32 +157,35 @@ export class FuncValidator<O> implements Validator<O> {
         this.func = func;
     }
     
+    private _callFunc<T>(val, context?): ValidationPromise<T> {
+        try {
+            var res = this.func(val, context);
+        } catch (e) {
+            return <ValidationPromise<T>> Q.reject<T>({"" : [e]});
+        }
+        
+        // Looks like a promise
+        if (_.isObject(res) && _.isFunction(res.then) && _.isFunction(res.catch)) {
+            var deferred = Q.defer<T>();
+            res.then(i => deferred.resolve(i))
+               .catch(er => deferred.reject({"" : [er]}));
+            return <ValidationPromise<T>> deferred.promise;
+        }
+        
+        return <ValidationPromise<T>> Q.resolve(res);
+    }
+    
     validatePath<T>(oldValue: T, path: string, newValue?: any, context?: any):
         ValidationPromise<T>
     {
         if (path !== "") {
             return <any> Q.reject<T>({"" : ["Function validator does not recognize this path:" + path]});
         }
-        
-        var deferred = Q.defer<T>();
-        try {
-            return <ValidationPromise<T>> Q.resolve<T>(this.func(newValue, context));
-        } catch (e) {
-            return <ValidationPromise<T>> Q.reject<T>({"" : [e]});
-        }
+        return <ValidationPromise<T>> this._callFunc(newValue, context);
     }
     
     validate(value: O): ValidationPromise<O> {
-        var copy = _.cloneDeep(value),
-            deferred = Q.defer<O>();
-        
-        try {
-            deferred.resolve(this.func(copy));
-        } catch (e) {
-            deferred.reject({"" : [e]});
-        }
-        
-        return <ValidationPromise<O>> deferred.promise;
+        return this._callFunc<O>(value);
     }
 }
 

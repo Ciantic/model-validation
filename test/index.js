@@ -2,6 +2,7 @@
 /// <reference path="../typings/assert/assert.d.ts" />
 /// <reference path="../typings/lodash/lodash.d.ts" />
 var V = require("../index");
+var Q = require("q");
 var assert = require("assert");
 describe("Validations", function () {
     describe("Validation functions", function () {
@@ -198,6 +199,30 @@ describe("Validations", function () {
             assert.equal("third_" + (validator.fields['a'].fields['b'] instanceof V.FuncValidator), "third_true");
         });
     });
+    describe("Function validation", function () {
+        it("should work with deferred result", function () {
+            return new V.FuncValidator(function (i) {
+                var deferred = Q.defer();
+                setTimeout(function () {
+                    deferred.resolve("done");
+                }, 10);
+                return deferred.promise;
+            }).validate("").then(function (res) {
+                assert.equal(res, "done");
+            });
+        });
+        it("should fail with deferred error", function () {
+            return new V.FuncValidator(function (i) {
+                var deferred = Q.defer();
+                setTimeout(function () {
+                    deferred.reject("fail");
+                }, 10);
+                return deferred.promise;
+            }).validate("").catch(function (res) {
+                assert.deepEqual(res, { "": ["fail"] });
+            });
+        });
+    });
     describe("Object path validation", function () {
         it("should work", function () {
             var obj = {
@@ -256,6 +281,12 @@ describe("Validations", function () {
                 "price": 0
             }).catch(function (errs) {
                 assert.deepEqual(errs, { "price": ["Orange is not a pizza"] });
+            });
+        });
+    });
+    describe("FuncValidator validation", function () {
+        it("should work", function () {
+            var funcValidator = new V.FuncValidator(function () {
             });
         });
     });

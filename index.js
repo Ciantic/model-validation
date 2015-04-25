@@ -127,27 +127,29 @@ var FuncValidator = (function () {
     function FuncValidator(func, parent) {
         this.func = func;
     }
-    FuncValidator.prototype.validatePath = function (oldValue, path, newValue, context) {
-        if (path !== "") {
-            return Q.reject({ "": ["Function validator does not recognize this path:" + path] });
-        }
-        var deferred = Q.defer();
+    FuncValidator.prototype._callFunc = function (val, context) {
         try {
-            return Q.resolve(this.func(newValue, context));
+            var res = this.func(val, context);
         }
         catch (e) {
             return Q.reject({ "": [e] });
         }
+        if (_.isObject(res) && _.isFunction(res.then) && _.isFunction(res.catch)) {
+            var deferred = Q.defer();
+            res.then(function (i) { return deferred.resolve(i); })
+                .catch(function (er) { return deferred.reject({ "": [er] }); });
+            return deferred.promise;
+        }
+        return Q.resolve(res);
+    };
+    FuncValidator.prototype.validatePath = function (oldValue, path, newValue, context) {
+        if (path !== "") {
+            return Q.reject({ "": ["Function validator does not recognize this path:" + path] });
+        }
+        return this._callFunc(newValue, context);
     };
     FuncValidator.prototype.validate = function (value) {
-        var copy = _.cloneDeep(value), deferred = Q.defer();
-        try {
-            deferred.resolve(this.func(copy));
-        }
-        catch (e) {
-            deferred.reject({ "": [e] });
-        }
-        return deferred.promise;
+        return this._callFunc(value);
     };
     return FuncValidator;
 })();

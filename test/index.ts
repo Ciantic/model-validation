@@ -3,6 +3,7 @@
 /// <reference path="../typings/lodash/lodash.d.ts" />
 
 import V = require("../index");
+import Q = require("q");
 
 // Some reason this throws me error assert module is not found:
 // import assert = require("assert");
@@ -14,7 +15,6 @@ describe("Validations", function() {
     describe("Validation functions", function() {
         it("required", () => {
             assert.equal(V.required("yes"), "yes");
-            
             try {
                 V.required("");
                 throw "Must not run";
@@ -209,6 +209,31 @@ describe("Validations", function() {
             assert.equal("third_" + (validator.fields['a'].fields['b'] instanceof V.FuncValidator), "third_true");
         });
     });
+    describe("Function validation", function() {
+        it("should work with deferred result", () => {
+            return new V.FuncValidator((i) => {
+                var deferred = Q.defer();
+                setTimeout(function () {
+                    deferred.resolve("done");
+                }, 10);
+                return deferred.promise;
+            }).validate("").then((res) => {
+                assert.equal(res, "done");
+            });
+        });
+        
+        it("should fail with deferred error", () => {
+            return new V.FuncValidator((i) => {
+                var deferred = Q.defer();
+                setTimeout(function () {
+                    deferred.reject("fail");
+                }, 10);
+                return deferred.promise;
+            }).validate("").catch((res) => {
+                assert.deepEqual(res, {"": ["fail"]});
+            });
+        });
+    });
     describe("Object path validation", function() {
         it("should work", () => {
             var obj = {
@@ -270,7 +295,15 @@ describe("Validations", function() {
             });
         });
     });
-
+    
+    describe("FuncValidator validation", function() {
+        it("should work", () => {
+            var funcValidator = new V.FuncValidator(() => {
+                
+            })
+        });
+    });
+            
     describe("Object validation", function() {
         
         it("should work", () => {
