@@ -1,15 +1,14 @@
 /// <reference path="../typings/mocha/mocha.d.ts" />
-/// <reference path="../typings/assert/assert.d.ts" />
+/// <reference path="../typings/chai/chai.d.ts" />
 /// <reference path="../typings/lodash/lodash.d.ts" />
+
+declare var require: any;
+require("source-map-support").install();
 
 import V = require("../index");
 import Q = require("q");
-
-// Some reason this throws me error assert module is not found:
-// import assert = require("assert");
-
-declare var require: any;
-var assert = require("assert");
+import chai = require("chai");
+var assert = chai.assert;
 
 describe("Validations", function() {
     describe("Validation functions", function() {

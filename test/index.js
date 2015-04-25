@@ -1,9 +1,11 @@
 /// <reference path="../typings/mocha/mocha.d.ts" />
-/// <reference path="../typings/assert/assert.d.ts" />
+/// <reference path="../typings/chai/chai.d.ts" />
 /// <reference path="../typings/lodash/lodash.d.ts" />
+require("source-map-support").install();
 var V = require("../index");
 var Q = require("q");
-var assert = require("assert");
+var chai = require("chai");
+var assert = chai.assert;
 describe("Validations", function () {
     describe("Validation functions", function () {
         it("required", function () {
@@ -546,3 +548,4 @@ describe("Validations", function () {
         });
     });
 });
+//# sourceMappingURL=index.js.map

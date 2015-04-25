@@ -7,8 +7,9 @@
     "q": "^1.2.0"
   },
   "devDependencies": {
-    "assert": "^1.3.0",
-    "mocha": "^2.2.1"
+    "chai": "^2.2.0",
+    "mocha": "^2.2.1",
+    "source-map-support": "^0.2.10"
   },
   "keywords": [],
   "author": "Jari Pennanen <ciantic@oksidi.com>",

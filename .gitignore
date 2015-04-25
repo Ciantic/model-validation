@@ -3,3 +3,4 @@ node_modules
 typings
 test/*.d.ts
 examples
+*.map

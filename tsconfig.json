@@ -5,7 +5,8 @@
         "declaration": true,
         "noImplicitAny": false,
         "removeComments": true,
-        "noLib": false
+        "noLib": false,
+        "sourceMap": true
     },
     "filesGlob": [
         "./**/*.ts",
@@ -22,6 +23,7 @@
         "./test/index.d.ts",
         "./test/index.ts",
         "./typings/assert/assert.d.ts",
+        "./typings/chai/chai.d.ts",
         "./typings/lodash/lodash.d.ts",
         "./typings/mocha/mocha.d.ts",
         "./typings/q/Q.d.ts",

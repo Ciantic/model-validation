@@ -16,6 +16,9 @@
     },
     "lodash/lodash.d.ts": {
       "commit": "65ea56c919fd95dcd0ca3c59c9aa5eaa99c86885"
+    },
+    "chai/chai.d.ts": {
+      "commit": "61d066fef5a1ac9e2389b51b9cf88746b7bbfde9"
     }
   }
 }
