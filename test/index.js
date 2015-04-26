@@ -34,6 +34,7 @@ describe("Validations", function () {
         });
         it("string", function () {
             assert.strictEqual(V.string(1.23), "1.23");
+            assert.strictEqual(V.string(undefined), "");
         });
         it("integer", function () {
             assert.strictEqual(V.integer(3.14), 3);
@@ -66,7 +67,8 @@ describe("Validations", function () {
             }
         });
         it("isFloat", function () {
-            assert.strictEqual(V.isFloat("3.14"), 3.14);
+            assert.strictEqual(V.isFloat("123.14"), 123.14);
+            assert.strictEqual(V.isFloat("123"), 123);
             try {
                 V.isFloat("a");
                 throw "Must not run";
@@ -345,17 +347,16 @@ describe("Validations", function () {
         });
         it("should create missing fields", function () {
             var obj = {
-                id: 5,
-                name: "John Doe",
+                id: undefined
             };
             return V.validator({
                 "id": V.integer,
-                "name": V.required(V.string),
+                "name": V.string,
                 "age": V.float,
             }).validate(obj).then(function (res) {
                 assert.deepEqual(res, {
-                    id: 5,
-                    name: "John Doe",
+                    id: 0,
+                    name: "",
                     age: 0
                 });
             });

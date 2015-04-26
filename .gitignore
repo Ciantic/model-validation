@@ -4,3 +4,4 @@ typings
 test/*.d.ts
 examples
 *.map
+.project

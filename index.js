@@ -85,7 +85,7 @@ function between(min, max, input) {
 }
 exports.between = between;
 function string(input) {
-    return "" + input;
+    return typeof input !== "undefined" ? "" + input : "";
 }
 exports.string = string;
 function integer(input) {
@@ -107,7 +107,7 @@ function isInteger(input) {
     if (_.isString(input) && /^\d+$/.exec(input)) {
         return parseInt(input) || 0;
     }
-    else if (_.isNumber(input) && parseInt(input) === input) {
+    else if (_.isNumber(input) && (input | 0) === input) {
         return input;
     }
     throw "Must be an integer";

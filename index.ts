@@ -114,7 +114,7 @@ export function between(min: number, max: number, input?: number|ValidationFunct
 }
 
 export function string(input: any): string {
-    return "" + input;
+    return typeof input  !== "undefined" ? "" + input : "";
 }
 
 export function integer(input: any): number {
@@ -135,7 +135,7 @@ export function isString(input: any): string {
 export function isInteger(input: any): number {
     if (_.isString(input) && /^\d+$/.exec(input)) {
         return parseInt(input) || 0;
-    } else if (_.isNumber(input) && parseInt(input) === input) {
+    } else if (_.isNumber(input) && (input|0) === input) {
         return input;
     }
     throw "Must be an integer"
