@@ -11,9 +11,6 @@
     "mocha/mocha.d.ts": {
       "commit": "65ea56c919fd95dcd0ca3c59c9aa5eaa99c86885"
     },
-    "assert/assert.d.ts": {
-      "commit": "65ea56c919fd95dcd0ca3c59c9aa5eaa99c86885"
-    },
     "lodash/lodash.d.ts": {
       "commit": "65ea56c919fd95dcd0ca3c59c9aa5eaa99c86885"
     },
