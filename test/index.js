@@ -288,12 +288,6 @@ describe("Validations", function () {
             });
         });
     });
-    describe("FuncValidator validation", function () {
-        it("should work", function () {
-            var funcValidator = new V.FuncValidator(function () {
-            });
-        });
-    });
     describe("Object validation", function () {
         it("should work", function () {
             var obj = {

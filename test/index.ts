@@ -296,14 +296,6 @@ describe("Validations", function() {
             });
         });
     });
-    
-    describe("FuncValidator validation", function() {
-        it("should work", () => {
-            var funcValidator = new V.FuncValidator(() => {
-                
-            })
-        });
-    });
             
     describe("Object validation", function() {
         
