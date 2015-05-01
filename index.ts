@@ -23,43 +23,7 @@ export interface Validator<O> {
     validatePath<T>(oldValue: T, path: string, newValue?: any, context?: any): ValidationPromise<T>;
 }
 
-export type ValidationFunction = (input: any, context?: any) => any;
-/*
-TODO: Does not work, recursive typing short circuits to any
-      https://github.com/Microsoft/TypeScript/issues/647
-
-export type validatorDefinition =
-    ValidationFunction | Validator<any> | ValidationFunction[] | Validator<any>[] |
-    ValidationFunction[][] | Validator<any>[][] |
-    { [name: string] : (validatorDefinition) } |
-    { [name: string] : (validatorDefinition) }[];
-*/
-
-function buildValidator<O>(validFunc: any, parent?: any): Validator<O> {
-    // Is validator function
-    if (_.isFunction(validFunc)) {
-        return new FuncValidator<O>(<ValidationFunction> validFunc, parent);
-    // Looks like a Validator
-    } else if (_.isObject(validFunc) && _.isFunction(validFunc.validate) && _.isFunction(validFunc.validatePath)) {
-        return <Validator<O>> validFunc;
-    // Is ObjectValidator masquerading as object
-    } else if (_.isPlainObject(validFunc)) {
-        var validFuncCopy = {}; //_.cloneDeep(validFunc);
-        _.each(validFunc, (v, k) => {
-            validFuncCopy[k] = buildValidator<O>(v);
-        });
-        return new ObjectValidator<O>(<{ [name: string] : Validator<any> }> validFuncCopy);
-    // Is ArrayValidator masquerading as array
-    } else if (_.isArray(validFunc) && validFunc.length === 1) {
-        return <any> new ArrayValidator(<any> buildValidator(validFunc[0]));
-    }
-    
-    throw "Validator is not defined for this field";
-}
-
-export function validator<O>(defs: any): Validator<O> {
-    return buildValidator<O>(defs);
-}
+export type ValidationFunction = <O>(input: O, context?: any) => O;
 
 export function operator(op: (input, ...args) => boolean, input?: any|ValidationFunction, ...args): any {
     // Function as argument
@@ -148,6 +112,31 @@ export function isFloat(input: any): number {
         return input;
     }
     throw "Must be an decimal number"
+}
+
+function getValidator<O>(v: ValidationFunction | Validator<O>): Validator<O> {
+    
+    // Is validation function
+    if (_.isFunction(v)) {
+        return <Validator<O>> new FuncValidator<O>(<ValidationFunction> v);
+        
+    // Is validator
+    } else if (_.isObject(v) &&
+        _.isFunction((<any> v).validate) &&
+        _.isFunction((<any> v).validatePath))
+    {
+        return <Validator<O>> v;
+    }
+    
+    throw "Validator is not defined for this field";
+}
+
+export function object<O>(defs: { [name: string] : ValidationFunction | Validator<any> }, context?: any): ObjectValidator<O> {
+    return new ObjectValidator<O>(_.mapValues(defs, (v) => getValidator<O>(v)));
+}
+
+export function array<O>(def: ValidationFunction | Validator<O>): ArrayValidator<O> {
+    return new ArrayValidator(getValidator<O>(def));
 }
 
 export class FuncValidator<O> implements Validator<O> {

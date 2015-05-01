@@ -6,29 +6,6 @@
 /// <reference path="typings/q/Q.d.ts" />
 var _ = require("lodash");
 var Q = require("q");
-function buildValidator(validFunc, parent) {
-    if (_.isFunction(validFunc)) {
-        return new FuncValidator(validFunc, parent);
-    }
-    else if (_.isObject(validFunc) && _.isFunction(validFunc.validate) && _.isFunction(validFunc.validatePath)) {
-        return validFunc;
-    }
-    else if (_.isPlainObject(validFunc)) {
-        var validFuncCopy = {};
-        _.each(validFunc, function (v, k) {
-            validFuncCopy[k] = buildValidator(v);
-        });
-        return new ObjectValidator(validFuncCopy);
-    }
-    else if (_.isArray(validFunc) && validFunc.length === 1) {
-        return new ArrayValidator(buildValidator(validFunc[0]));
-    }
-    throw "Validator is not defined for this field";
-}
-function validator(defs) {
-    return buildValidator(defs);
-}
-exports.validator = validator;
 function operator(op, input) {
     var args = [];
     for (var _i = 2; _i < arguments.length; _i++) {
@@ -123,6 +100,25 @@ function isFloat(input) {
     throw "Must be an decimal number";
 }
 exports.isFloat = isFloat;
+function getValidator(v) {
+    if (_.isFunction(v)) {
+        return new FuncValidator(v);
+    }
+    else if (_.isObject(v) &&
+        _.isFunction(v.validate) &&
+        _.isFunction(v.validatePath)) {
+        return v;
+    }
+    throw "Validator is not defined for this field";
+}
+function object(defs, context) {
+    return new ObjectValidator(_.mapValues(defs, function (v) { return getValidator(v); }));
+}
+exports.object = object;
+function array(def) {
+    return new ArrayValidator(getValidator(def));
+}
+exports.array = array;
 var FuncValidator = (function () {
     function FuncValidator(func, parent) {
         this.func = func;

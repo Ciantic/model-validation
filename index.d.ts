@@ -13,8 +13,7 @@ export interface Validator<O> {
     validate(value: O): ValidationPromise<O>;
     validatePath<T>(oldValue: T, path: string, newValue?: any, context?: any): ValidationPromise<T>;
 }
-export declare type ValidationFunction = (input: any, context?: any) => any;
-export declare function validator<O>(defs: any): Validator<O>;
+export declare type ValidationFunction = <O>(input: O, context?: any) => O;
 export declare function operator(op: (input, ...args) => boolean, input?: any | ValidationFunction, ...args: any[]): any;
 export declare function required(input: any | ValidationFunction, isNot?: any): any | ValidationFunction;
 export declare function min(val: number, input?: number | ValidationFunction): number | ValidationFunction;
@@ -26,6 +25,10 @@ export declare function float(input: any): number;
 export declare function isString(input: any): string;
 export declare function isInteger(input: any): number;
 export declare function isFloat(input: any): number;
+export declare function object<O>(defs: {
+    [name: string]: ValidationFunction | Validator<any>;
+}, context?: any): ObjectValidator<O>;
+export declare function array<O>(def: ValidationFunction | Validator<O>): ArrayValidator<O>;
 export declare class FuncValidator<O> implements Validator<O> {
     func: ValidationFunction;
     constructor(func: ValidationFunction, parent?: any);

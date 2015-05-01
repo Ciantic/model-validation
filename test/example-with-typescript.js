@@ -1,9 +1,9 @@
 var V = require("../index");
-var addressValidator = V.validator({
+var addressValidator = V.object({
     city: V.required(V.string),
     address: V.string,
 });
-var userValidator = V.validator({
+var userValidator = V.object({
     id: V.integer,
     name: V.required(V.string),
     email: V.string,
@@ -20,3 +20,4 @@ userValidator.validate({
 }).then(function (v) {
 }).catch(function (errs) {
 });
+//# sourceMappingURL=example-with-typescript.js.map

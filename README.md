@@ -7,14 +7,14 @@ Experimental, see test/index.js for specs.
 var V = require("model-validation");
 
 // Validation definition
-var userValidator = V.validator({
+var userValidator = V.object({
     id : V.integer,
     name : V.required(V.string),
     email : V.string,
-    address : {
+    address : V.object({
         city : V.required(V.string),
         address : V.string,
-    }
+    })
 });
 
 // Validation is done like this
@@ -31,6 +31,7 @@ userValidator.validate({
 }).catch(function(errs) {
     // errs is object of errors {[name: string] : string[]}
 });
+
 ```
 
 ## Example with TypeScript and composition
@@ -44,7 +45,7 @@ interface Address {
     address : string
 }
 
-var addressValidator = V.validator<Address>({
+var addressValidator = V.object<Address>({
     city : V.required(V.string),
     address : V.string,
 });
@@ -56,7 +57,7 @@ interface User {
     address: Address
 }
 
-var userValidator = V.validator<User>({
+var userValidator = V.object<User>({
     id : V.integer,
     name : V.required(V.string),
     email : V.string,
@@ -76,4 +77,5 @@ userValidator.validate({
 }).catch((errs) => {
     // errs is object of errors {[name: string] : string[]}
 });
+
 ```

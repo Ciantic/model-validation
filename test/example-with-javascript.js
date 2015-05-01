@@ -1,14 +1,14 @@
 var V = require("../index");
 
 // Validation definition
-var userValidator = V.validator({
+var userValidator = V.object({
     id : V.integer,
     name : V.required(V.string),
     email : V.string,
-    address : {
+    address : V.object({
         city : V.required(V.string),
         address : V.string,
-    }
+    })
 });
 
 // Validation is done like this

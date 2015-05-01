@@ -5,7 +5,7 @@ interface Address {
     address : string
 }
 
-var addressValidator = V.validator<Address>({
+var addressValidator = V.object<Address>({
     city : V.required(V.string),
     address : V.string,
 });
@@ -17,7 +17,7 @@ interface User {
     address: Address
 }
 
-var userValidator = V.validator<User>({
+var userValidator = V.object<User>({
     id : V.integer,
     name : V.required(V.string),
     email : V.string,
