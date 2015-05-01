@@ -25,7 +25,7 @@ describe("Validations", function() {
         it("required with function", () => {
             assert.equal(V.required(V.string)("yes"), "yes");
             try {
-                V.required((i,c) => {
+                V.required((i:any,c:any) => {
                     assert.equal(c, "context");
                     assert.equal(i, "falzy");
                     return "falzy";
@@ -86,7 +86,7 @@ describe("Validations", function() {
             assert.strictEqual(V.min(5, 100), 100);
             assert.strictEqual((<any> (V.min(5, V.float)))(100), 100);
             assert.strictEqual((<any> (V.min(5)))(100), 100);
-            assert.strictEqual((<any> (V.min(5, (i) => {
+            assert.strictEqual((<any> (V.min(5, (i:any) => {
                 // Makes sure this part is being run
                 return 100;
             })))(null), 100);
@@ -114,7 +114,7 @@ describe("Validations", function() {
             assert.strictEqual(V.max(100, 5), 5);
             assert.strictEqual((<any> (V.max(100, V.float)))(5), 5);
             assert.strictEqual((<any> (V.max(100)))(5), 5);
-            assert.strictEqual((<any> (V.max(100, (i) => {
+            assert.strictEqual((<any> (V.max(100, (i:any) => {
                 // Makes sure this part is being run
                 return 5;
             })))(null), 5);
@@ -142,7 +142,7 @@ describe("Validations", function() {
             assert.strictEqual(V.between(50, 100, 70), 70);
             assert.strictEqual((<any> (V.between(50, 100, V.float)))(70), 70);
             assert.strictEqual((<any> (V.between(50, 100)))(70), 70);
-            assert.strictEqual((<any> (V.between(50, 100, (i) => {
+            assert.strictEqual((<any> (V.between(50, 100, (i:any) => {
                 // Makes sure this part is being run
                 return 70;
             })))(null), 70);
@@ -169,7 +169,7 @@ describe("Validations", function() {
     });
     describe("Function validation", function() {
         it("should work with deferred result", () => {
-            return new V.FuncValidator((i) => {
+            return new V.Validators.FuncValidator((i:any) => {
                 var deferred = Q.defer();
                 setTimeout(function () {
                     deferred.resolve("done");
@@ -181,7 +181,7 @@ describe("Validations", function() {
         });
         
         it("should fail with deferred error", () => {
-            return new V.FuncValidator((i) => {
+            return new V.Validators.FuncValidator((i:any) => {
                 var deferred = Q.defer();
                 setTimeout(function () {
                     deferred.reject("fail");
@@ -229,7 +229,7 @@ describe("Validations", function() {
         it("should be able to access object", () => {
             return V.object({
                 "product": V.required(V.string),
-                "price": (i, o) => { if (o.product != "pizza") throw o.product + " is not a pizza"; return 7.95; },
+                "price": (i: any, o: any) => { if (o.product != "pizza") throw o.product + " is not a pizza"; return 7.95; },
             }).validate({
                 "product" : "pizza",
                 "price" : 0
@@ -244,7 +244,7 @@ describe("Validations", function() {
         it("should be able to raise error by object value", () => {
             return V.object({
                 "product": V.required(V.string),
-                "price": (i, o) => { if (o.product != "pizza") throw o.product + " is not a pizza"; return 7.95; },
+                "price": (i: any, o: any) => { if (o.product != "pizza") throw o.product + " is not a pizza"; return 7.95; },
             }).validate({
                 "product" : "Orange",
                 "price" : 0
@@ -310,7 +310,7 @@ describe("Validations", function() {
         });
         
         it("should create missing fields", () => {
-            var obj = {
+            var obj: any = {
                 id : undefined
             }
             return V.object({
@@ -475,7 +475,7 @@ describe("Validations", function() {
                 }];
 
             return V.array(V.object({
-                "name": (i) => V.required(V.string(i)),
+                "name": (i: any) => V.required(V.string(i)),
                 "age": V.float
             })).validate(objs).then((val) => {
                 assert.deepEqual(val, objs);
@@ -485,7 +485,7 @@ describe("Validations", function() {
         it("of simple functios should raise errors", function() {
             var arr = ["", ""];
 
-            return V.array((i) => V.required(V.string(i))).validate(arr).catch((errs) => {
+            return V.array((i: any) => V.required(V.string(i))).validate(arr).catch((errs) => {
                 assert.deepEqual(errs, {
                     "[0]" : ["This field is required"],
                     "[1]" : ["This field is required"]
@@ -495,7 +495,7 @@ describe("Validations", function() {
         it("of arrays should raise errors", function() {
             var arr = [[["", ""]]];
 
-            return V.array(V.array(V.array((i) => V.required(V.string(i)))))
+            return V.array(V.array(V.array((i: any) => V.required(V.string(i)))))
                 .validate(arr).catch((errs) => {
                     assert.deepEqual(errs, {
                         "[0][0][0]" : ["This field is required"],
@@ -512,7 +512,7 @@ describe("Validations", function() {
             return  V.object({
                 "aaa" : V.array(V.object({
                     "bbb" : V.array(V.object({
-                        "ccc" : (i) => V.required(V.string(i))
+                        "ccc" : (i: any) => V.required(V.string(i))
                     }))
                 }))
             }).validate(thing).then((val) => {
@@ -526,7 +526,7 @@ describe("Validations", function() {
             return V.object({
                 "aaa" : V.array(V.object({
                     "bbb" : V.array(V.object({
-                        "ccc" : (i) => V.required(V.string(i))
+                        "ccc" : (i: any) => V.required(V.string(i))
                     }))
                 }))
             }).validate(thing).catch((errs) => {

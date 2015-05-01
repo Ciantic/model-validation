@@ -167,7 +167,7 @@ describe("Validations", function () {
     });
     describe("Function validation", function () {
         it("should work with deferred result", function () {
-            return new V.FuncValidator(function (i) {
+            return new V.Validators.FuncValidator(function (i) {
                 var deferred = Q.defer();
                 setTimeout(function () {
                     deferred.resolve("done");
@@ -178,7 +178,7 @@ describe("Validations", function () {
             });
         });
         it("should fail with deferred error", function () {
-            return new V.FuncValidator(function (i) {
+            return new V.Validators.FuncValidator(function (i) {
                 var deferred = Q.defer();
                 setTimeout(function () {
                     deferred.reject("fail");
