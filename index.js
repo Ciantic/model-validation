@@ -54,13 +54,22 @@ function max(val, input) {
 exports.max = max;
 function between(min, max, input) {
     return operator(function (input) {
-        if (input <= min || input >= max) {
+        if (input < min || input > max) {
             throw "Value must be between " + min + " and " + max;
         }
         return input;
     }, input);
 }
 exports.between = between;
+function betweenExclusive(min, max, input) {
+    return operator(function (input) {
+        if (input <= min || input >= max) {
+            throw "Value must exclusively be between " + min + " and " + max;
+        }
+        return input;
+    }, input);
+}
+exports.betweenExclusive = betweenExclusive;
 function string(input) {
     return typeof input !== "undefined" ? "" + input : "";
 }

@@ -64,6 +64,7 @@ describe("Validations", function() {
         });
         it("isInteger", () => {
             assert.strictEqual(V.isInteger(3), 3);
+            assert.strictEqual(V.isInteger("4"), 4);
             try {
                 V.isInteger(3.14);
                 throw "Must not run";
@@ -72,8 +73,8 @@ describe("Validations", function() {
             }
         });
         it("isFloat", () => {
+            assert.strictEqual(V.isFloat(123.14), 123.14);
             assert.strictEqual(V.isFloat("123.14"), 123.14);
-            assert.strictEqual(V.isFloat("123"), 123);
             try {
                 V.isFloat("a");
                 throw "Must not run";
@@ -139,6 +140,8 @@ describe("Validations", function() {
         });
         
         it("between", () => {
+            assert.strictEqual(V.between(50, 100, 50), 50); // Inclusive
+            assert.strictEqual(V.between(50, 100, 100), 100); // Inclusive
             assert.strictEqual(V.between(50, 100, 70), 70);
             assert.strictEqual((<any> (V.between(50, 100, V.float)))(70), 70);
             assert.strictEqual((<any> (V.between(50, 100)))(70), 70);
@@ -164,6 +167,46 @@ describe("Validations", function() {
                 throw "Must not run"
             } catch (e) {
                 assert.equal(e, "Value must be between 50 and 100");
+            }
+        });
+        it("betweenExclusive", () => {
+            assert.strictEqual(V.betweenExclusive(50, 100, 70), 70);
+            assert.strictEqual((<any> (V.betweenExclusive(50, 100, V.float)))(70), 70);
+            assert.strictEqual((<any> (V.betweenExclusive(50, 100)))(70), 70);
+            assert.strictEqual((<any> (V.betweenExclusive(50, 100, (i:any) => {
+                // Makes sure this part is being run
+                return 70;
+            })))(null), 70);
+            
+            try {
+                V.betweenExclusive(50, 100, 50); // Exclusive
+                throw "Must not run"
+            } catch (e) {
+                assert.equal(e, "Value must exclusively be between 50 and 100");
+            }
+            try {
+                V.betweenExclusive(50, 100, 100); // Exclusive
+                throw "Must not run"
+            } catch (e) {
+                assert.equal(e, "Value must exclusively be between 50 and 100");
+            }
+            try {
+                V.betweenExclusive(50, 100, 10);
+                throw "Must not run"
+            } catch (e) {
+                assert.equal(e, "Value must exclusively be between 50 and 100");
+            }
+            try {
+                (<any> (V.betweenExclusive(50, 100, V.float)))(10);
+                throw "Must not run"
+            } catch (e) {
+                assert.equal(e, "Value must exclusively be between 50 and 100");
+            }
+            try {
+                (<any> (V.betweenExclusive(50, 100)))(10);
+                throw "Must not run"
+            } catch (e) {
+                assert.equal(e, "Value must exclusively be between 50 and 100");
             }
         });
     });

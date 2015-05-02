@@ -70,8 +70,17 @@ export function max(val: number, input?: number|ValidationFunction) : number|Val
 
 export function between(min: number, max: number, input?: number|ValidationFunction) : number|ValidationFunction {
     return operator((input) => {
-        if (input <= min || input >= max) {
+        if (input < min || input > max) {
             throw "Value must be between " + min + " and " + max
+        }
+        return input;
+    }, input);
+}
+
+export function betweenExclusive(min: number, max: number, input?: number|ValidationFunction) : number|ValidationFunction {
+    return operator((input) => {
+        if (input <= min || input >= max) {
+            throw "Value must exclusively be between " + min + " and " + max
         }
         return input;
     }, input);
