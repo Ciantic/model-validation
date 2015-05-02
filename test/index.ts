@@ -234,6 +234,30 @@ describe("Validations", function() {
                 assert.deepEqual(res, {"": ["fail"]});
             });
         });
+        
+        it("should progress with deferred", () => {
+            var notifies: string[] = [];
+            
+            return new V.Validators.FuncValidator((i:any) => {
+                var p = Q.defer();
+                setTimeout(() => {
+                    p.notify("40%");
+                }, 10);
+                setTimeout(() => {
+                    p.notify("70%");
+                }, 20);
+                setTimeout(() => {
+                    p.resolve("final");
+                }, 30);
+                return p.promise;
+            }).validate("")
+            .progress(v => {
+                notifies.push(v[""].progress);
+            })
+            .then((res) => {
+                assert.deepEqual(notifies, ["40%", "70%"]);
+            });
+        });
     });
     describe("Object path validation", function() {
         it("should work", () => {
@@ -293,6 +317,32 @@ describe("Validations", function() {
                 "price" : 0
             }).catch((errs) => {
                 assert.deepEqual(errs, {"price":["Orange is not a pizza"]});
+            });
+        });
+        
+        it("should notify progress by path", () => {
+            var notifies: string[] = [];
+            return V.object({
+                "file": () => {
+                    var p = Q.defer();
+                    setTimeout(() => {
+                        p.notify("40%");
+                    }, 10);
+                    setTimeout(() => {
+                        p.notify("70%");
+                    }, 20);
+                    setTimeout(() => {
+                        p.resolve("final");
+                    }, 30);
+                    return p.promise;
+                }
+            }).validate({
+                "file" : "upload.zip"
+            }).progress((s) => {
+                notifies.push(s["file"].progress);
+            }).then(() => {
+                //def.resolve("");
+                assert.deepEqual(notifies, ["40%", "70%"]);
             });
         });
     });
@@ -361,6 +411,20 @@ describe("Validations", function() {
                     "name": V.string,
                     "age": V.float,
                 }).validate(obj).then((res) => {
+                    assert.deepEqual(res, {
+                        id : 0,
+                        name : "",
+                        age : 0
+                    });
+                });
+        });
+        
+        it("should create missing fields with wrong input", () => {
+            return V.object({
+                    "id": V.integer,
+                    "name": V.string,
+                    "age": V.float,
+                }).validate("foo").then((res) => {
                     assert.deepEqual(res, {
                         id : 0,
                         name : "",
@@ -497,6 +561,75 @@ describe("Validations", function() {
                 });
             });
         });
+        
+        it("should create nested fields with wrong input", () => {
+            return V.object({
+                    "id": V.integer,
+                    "name": V.string,
+                    "address": V.object({
+                        "city" : V.string
+                    }),
+                }).validate("foo").then((res) => {
+                    assert.deepEqual(res, {
+                        id : 0,
+                        name : "",
+                        address : {
+                            city : ""
+                        }
+                    });
+                });
+        });
+        
+        it("should create nested fields with wrong input", () => {
+            return V.object({
+                    "id": V.integer,
+                    "name": V.string,
+                    "address": V.object({
+                        "city" : V.string
+                    }),
+                }).validate({
+                    "id" : 5,
+                    "name" : "Test",
+                    "address" : ""
+                }).then((res) => {
+                    assert.deepEqual(res, {
+                        id : 5,
+                        name : "Test",
+                        address : {
+                            city : ""
+                        }
+                    });
+                });
+        });
+        
+        it("should notify progress by dot notation", () => {
+            var notifies: string[] = [];
+            return V.object({
+                "some" : V.object({
+                    "file": () => {
+                        var p = Q.defer();
+                        setTimeout(() => {
+                            p.notify("40%");
+                        }, 10);
+                        setTimeout(() => {
+                            p.notify("70%");
+                        }, 20);
+                        setTimeout(() => {
+                            p.resolve("final");
+                        }, 30);
+                        return p.promise;
+                    }
+                })
+            }).validate({
+                "some" : {
+                    'file' : "upload.zip"
+                }
+            }).progress((s) => {
+                notifies.push(s["some.file"].progress);
+            }).then(() => {
+                assert.deepEqual(notifies, ["40%", "70%"]);
+            });
+        });
     });
     
     describe("Array validation", function() {
@@ -525,6 +658,35 @@ describe("Validations", function() {
             });
         });
         
+        it("should create missing fields with wrong input", () => {
+            return V.array(V.string).validate(<any> "foo")
+                .then((res) => {
+                    assert.deepEqual(res, []);
+                });
+        });
+        
+        it("should notify progress by path", () => {
+            var notifies: string[] = [];
+            return V.array(() => {
+                    var p = Q.defer();
+                    setTimeout(() => {
+                        p.notify("40%");
+                    }, 10);
+                    setTimeout(() => {
+                        p.notify("70%");
+                    }, 20);
+                    setTimeout(() => {
+                        p.resolve("final");
+                    }, 30);
+                    return p.promise;
+                })
+            .validate(["test"]).progress((s) => {
+                notifies.push(s["[0]"].progress);
+            }).then(() => {
+                assert.deepEqual(notifies, ["40%", "70%"]);
+            });
+        });
+        
         it("of simple functios should raise errors", function() {
             var arr = ["", ""];
 
@@ -535,6 +697,7 @@ describe("Validations", function() {
                 });
             });
         });
+        
         it("of arrays should raise errors", function() {
             var arr = [[["", ""]]];
 
@@ -545,6 +708,28 @@ describe("Validations", function() {
                         "[0][0][1]" : ["This field is required"]
                     });
                 });
+        });
+        
+        it("of arrays should notify progress by path", () => {
+            var notifies: string[] = [];
+            return V.array(V.array(() => {
+                    var p = Q.defer();
+                    setTimeout(() => {
+                        p.notify("40%");
+                    }, 10);
+                    setTimeout(() => {
+                        p.notify("70%");
+                    }, 20);
+                    setTimeout(() => {
+                        p.resolve("final");
+                    }, 30);
+                    return p.promise;
+                }))
+            .validate([["test"]]).progress((s) => {
+                notifies.push(s["[0][0]"].progress);
+            }).then(() => {
+                assert.deepEqual(notifies, ["40%", "70%"]);
+            });
         });
     })
     
@@ -576,6 +761,36 @@ describe("Validations", function() {
                 assert.deepEqual(errs, {
                     "aaa[0].bbb[0].ccc" : ["This field is required"]
                 });
+            });
+        });
+        
+        it("should notify progress", () => {
+            var thing = {"aaa" : [{"bbb" : [{"ccc" : ""}]}]};
+            var notifies: string[] = [];
+            
+            return V.object({
+                "aaa" : V.array(V.object({
+                    "bbb" : V.array(V.object({
+                        "ccc" : () => {
+                            var p = Q.defer();
+                            setTimeout(() => {
+                                p.notify("40%");
+                            }, 10);
+                            setTimeout(() => {
+                                p.notify("70%");
+                            }, 20);
+                            setTimeout(() => {
+                                p.resolve("final");
+                            }, 30);
+                            return p.promise;
+                        }
+                    }))
+                }))
+            })
+            .validate(thing).progress((s) => {
+                notifies.push(s["aaa[0].bbb[0].ccc"].progress);
+            }).then(() => {
+                assert.deepEqual(notifies, ["40%", "70%"]);
             });
         });
     })

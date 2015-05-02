@@ -145,7 +145,8 @@ var Validators;
                 var deferred = Q.defer();
                 res
                     .then(function (i) { return deferred.resolve(i); })
-                    .catch(function (er) { return deferred.reject({ "": [er] }); });
+                    .catch(function (er) { return deferred.reject({ "": [er] }); })
+                    .progress(function (n) { return deferred.notify({ "": { progress: n } }); });
                 return deferred.promise;
             }
             return Q.resolve(res);
@@ -186,10 +187,19 @@ var Validators;
                     fieldErrors[field + (k.length > 0 && k[0] !== "[" ? "." + k : k)] = v;
                 });
                 deferred.reject(fieldErrors);
+            }).progress(function (s) {
+                var state = {};
+                _.each(s, function (v, k) {
+                    state[field + (k.length > 0 && k[0] !== "[" ? "." + k : k)] = v;
+                });
+                deferred.notify(state);
             });
             return deferred.promise;
         };
         ObjectValidator.prototype.validate = function (object) {
+            if (!_.isObject(object)) {
+                object = {};
+            }
             var self = this, defer = Q.defer(), dfields = [], copy = _.pick(_.cloneDeep(object), _.keys(this.fields)), errors = {};
             _.each(this.fields, function (v, k) {
                 var p = self.validatePath(object, k, object[k], object);
@@ -198,6 +208,8 @@ var Validators;
                     copy[k] = res[k];
                 }).catch(function (part_errors) {
                     _.assign(errors, part_errors);
+                }).progress(function (p) {
+                    defer.notify(p);
                 });
             });
             Q.all(dfields).then(function (resz) {
@@ -232,10 +244,19 @@ var Validators;
                     fieldErrors[indexAccessor + (k.length > 0 && k[0] !== "[" ? "." + k : k)] = v;
                 });
                 deferred.reject(fieldErrors);
+            }).progress(function (s) {
+                var state = {}, indexAccessor = "[" + field + "]";
+                _.each(s, function (v, k) {
+                    state[indexAccessor + (k.length > 0 && k[0] !== "[" ? "." + k : k)] = v;
+                });
+                deferred.notify(state);
             });
             return deferred.promise;
         };
         ArrayValidator.prototype.validate = function (arr) {
+            if (!_.isArray(arr)) {
+                arr = [];
+            }
             var self = this, defer = Q.defer(), dfields = [], copy = [], errors = {};
             _.each(arr, function (v, k) {
                 var p = self.validatePath(arr[k], "[" + k + "]", v, arr);
@@ -244,6 +265,8 @@ var Validators;
                     copy[k] = res;
                 }).catch(function (err) {
                     _.assign(errors, err);
+                }).progress(function (p) {
+                    defer.notify(p);
                 });
             });
             Q.all(dfields).then(function (resz) {

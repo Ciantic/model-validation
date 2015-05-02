@@ -4,10 +4,17 @@ import Q = require("q");
 export declare type ErrorMessages = {
     [name: string]: string[];
 };
+export declare type NotifyState = {
+    [name: string]: {
+        progress: any;
+        resolved: any;
+        rejected: any;
+    };
+};
 export interface ValidationPromise<T> extends Q.Promise<T> {
     then(onFullFill: (v: T) => any): ValidationPromise<T>;
     catch(onFailure: (v: ErrorMessages) => any): ValidationPromise<T>;
-    notify(onNotify: (v: {}) => any): ValidationPromise<T>;
+    progress(onProgress: (v: NotifyState) => any): ValidationPromise<T>;
 }
 export interface Validator<O> {
     validate(value: O): ValidationPromise<O>;

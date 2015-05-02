@@ -12,10 +12,18 @@ export type ErrorMessages = {
     [name: string] : string[]
 }
 
+export type NotifyState = {
+    [name: string] : {
+        progress : any,
+        resolved : any,
+        rejected : any
+    }
+}
+
 export interface ValidationPromise<T> extends Q.Promise<T> {
     then(onFullFill: (v: T) => any): ValidationPromise<T>
     catch(onFailure: (v: ErrorMessages) => any): ValidationPromise<T>
-    notify(onNotify: (v: {}) => any): ValidationPromise<T>
+    progress(onProgress: (v: NotifyState) => any): ValidationPromise<T>
 }
 
 export interface Validator<O> {
@@ -167,7 +175,8 @@ export module Validators {
                 var deferred = Q.defer<T>();
                 (<ValidationPromise<T>> res)
                     .then(i => deferred.resolve(i))
-                    .catch(er => deferred.reject({"" : [er]}));
+                    .catch(er => deferred.reject({"" : [er]}))
+                    .progress(n => deferred.notify({"" : {progress: n}}));
                 return <ValidationPromise<T>> deferred.promise;
             }
             
@@ -225,12 +234,21 @@ export module Validators {
                    fieldErrors[field + (k.length > 0 && k[0] !== "[" ? "." + k : k)] = v;
                });
                 deferred.reject(fieldErrors);
+            }).progress(s => {
+                var state: NotifyState = {};
+                _.each(s, (v, k) => {
+                    state[field + (k.length > 0 && k[0] !== "[" ? "." + k : k)] = v;
+                });
+                deferred.notify(state);
             });
 
             return <ValidationPromise<T>> deferred.promise;
         }
         
         validate(object: O): ValidationPromise<O> {
+            if (!_.isObject(object)) {
+                object = <O> {};
+            }
             var self = this,
                 defer = Q.defer<O>(),
                 dfields: Q.Promise<O>[] = [],
@@ -244,6 +262,8 @@ export module Validators {
                     (<any> copy)[k] = (<any> res)[k];
                 }).catch((part_errors) => {
                     _.assign(errors, part_errors);
+                }).progress(p => {
+                    defer.notify(p);
                 });
             });
             
@@ -292,10 +312,20 @@ export module Validators {
                     fieldErrors[indexAccessor + (k.length > 0 && k[0] !== "[" ? "." + k : k)] = v;
                 });
                 deferred.reject(fieldErrors);
+            }).progress(s => {
+                var state: NotifyState = {},
+                    indexAccessor = "[" + field + "]";
+                _.each(s, (v, k) => {
+                    state[indexAccessor + (k.length > 0 && k[0] !== "[" ? "." + k : k)] = v;
+                });
+                deferred.notify(state);
             });
             return <ValidationPromise<T>> deferred.promise;
         }
         validate(arr: O[]): ValidationPromise<O[]> {
+            if (!_.isArray(arr)) {
+                arr = <O[]> [];
+            }
             var self = this,
                 defer = Q.defer<O[]>(),
                 dfields: Q.Promise<O>[] = [],
@@ -310,6 +340,8 @@ export module Validators {
                     copy[k] = res;
                 }).catch((err) => {
                     _.assign(errors, err);
+                }).progress(p => {
+                    defer.notify(p);
                 });
             });
             
