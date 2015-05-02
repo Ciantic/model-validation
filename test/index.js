@@ -78,6 +78,35 @@ describe("Validations", function () {
                 assert.equal(f, "Must be an decimal number");
             }
         });
+        it("operator", function () {
+            var op = V.operator(function (input, arg1) {
+                if (input == arg1) {
+                    throw "Failure";
+                }
+                return input;
+            }, function (i, c) {
+                return i + " " + c;
+            }, "fail");
+            assert.strictEqual(op("test", "context"), "test context");
+            var op = V.operator(function (input, arg1) {
+                if (input == arg1) {
+                    throw "Failure";
+                }
+                return input;
+            }, undefined, "fail");
+            assert.strictEqual(op("test"), "test");
+            try {
+                op("fail");
+                throw "Must not run";
+            }
+            catch (e) {
+                assert.equal(e, "Failure");
+            }
+            var op = V.operator(function (input, arg1) {
+                return input;
+            }, "test");
+            assert.strictEqual(op, "test");
+        });
         it("min", function () {
             assert.strictEqual(V.min(5, 5), 5);
             assert.strictEqual(V.min(5, 100), 100);
