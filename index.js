@@ -36,22 +36,40 @@ function required(input, isNot) {
 exports.required = required;
 function min(val, input) {
     return operator(function (input, val) {
-        if (input <= val) {
-            throw "Value must be at least: " + val;
+        if (input < val) {
+            throw "Value must be equal or greater than: " + val;
         }
         return input;
     }, input, val);
 }
 exports.min = min;
+function minExclusive(val, input) {
+    return operator(function (input, val) {
+        if (input <= val) {
+            throw "Value must be greater than: " + val;
+        }
+        return input;
+    }, input, val);
+}
+exports.minExclusive = minExclusive;
 function max(val, input) {
     return operator(function (input, val) {
-        if (input >= val) {
-            throw "Value must not be greater than: " + val;
+        if (input > val) {
+            throw "Value must be equal or less than: " + val;
         }
         return input;
     }, input, val);
 }
 exports.max = max;
+function maxExclusive(val, input) {
+    return operator(function (input, val) {
+        if (input >= val) {
+            throw "Value must be less than: " + val;
+        }
+        return input;
+    }, input, val);
+}
+exports.maxExclusive = maxExclusive;
 function between(min, max, input) {
     return operator(function (input) {
         if (input < min || input > max) {

@@ -79,6 +79,7 @@ describe("Validations", function () {
             }
         });
         it("min", function () {
+            assert.strictEqual(V.min(5, 5), 5);
             assert.strictEqual(V.min(5, 100), 100);
             assert.strictEqual((V.min(5, V.float))(100), 100);
             assert.strictEqual((V.min(5))(100), 100);
@@ -90,24 +91,61 @@ describe("Validations", function () {
                 throw "Must not run";
             }
             catch (e) {
-                assert.equal(e, "Value must be at least: 5");
+                assert.equal(e, "Value must be equal or greater than: 5");
             }
             try {
                 (V.min(5, V.float))(4);
                 throw "Must not run";
             }
             catch (e) {
-                assert.equal(e, "Value must be at least: 5");
+                assert.equal(e, "Value must be equal or greater than: 5");
             }
             try {
                 (V.min(5))(4);
                 throw "Must not run";
             }
             catch (e) {
-                assert.equal(e, "Value must be at least: 5");
+                assert.equal(e, "Value must be equal or greater than: 5");
+            }
+        });
+        it("minExclusive", function () {
+            assert.strictEqual(V.minExclusive(5, 100), 100);
+            assert.strictEqual((V.minExclusive(5, V.float))(100), 100);
+            assert.strictEqual((V.minExclusive(5))(100), 100);
+            assert.strictEqual((V.minExclusive(5, function (i) {
+                return 100;
+            }))(null), 100);
+            try {
+                V.minExclusive(5, 5);
+                throw "Must not run";
+            }
+            catch (e) {
+                assert.equal(e, "Value must be greater than: 5");
+            }
+            try {
+                V.minExclusive(5, 5);
+                throw "Must not run";
+            }
+            catch (e) {
+                assert.equal(e, "Value must be greater than: 5");
+            }
+            try {
+                (V.minExclusive(5, V.float))(4);
+                throw "Must not run";
+            }
+            catch (e) {
+                assert.equal(e, "Value must be greater than: 5");
+            }
+            try {
+                (V.minExclusive(5))(4);
+                throw "Must not run";
+            }
+            catch (e) {
+                assert.equal(e, "Value must be greater than: 5");
             }
         });
         it("max", function () {
+            assert.strictEqual(V.max(5, 5), 5);
             assert.strictEqual(V.max(100, 5), 5);
             assert.strictEqual((V.max(100, V.float))(5), 5);
             assert.strictEqual((V.max(100))(5), 5);
@@ -119,21 +157,57 @@ describe("Validations", function () {
                 throw "Must not run";
             }
             catch (e) {
-                assert.equal(e, "Value must not be greater than: 5");
+                assert.equal(e, "Value must be equal or less than: 5");
             }
             try {
                 (V.max(5, V.float))(10);
                 throw "Must not run";
             }
             catch (e) {
-                assert.equal(e, "Value must not be greater than: 5");
+                assert.equal(e, "Value must be equal or less than: 5");
             }
             try {
                 (V.max(5))(10);
                 throw "Must not run";
             }
             catch (e) {
-                assert.equal(e, "Value must not be greater than: 5");
+                assert.equal(e, "Value must be equal or less than: 5");
+            }
+        });
+        it("maxExclusive", function () {
+            assert.strictEqual(V.maxExclusive(100, 5), 5);
+            assert.strictEqual((V.maxExclusive(100, V.float))(5), 5);
+            assert.strictEqual((V.maxExclusive(100))(5), 5);
+            assert.strictEqual((V.maxExclusive(100, function (i) {
+                return 5;
+            }))(null), 5);
+            try {
+                V.maxExclusive(5, 5);
+                throw "Must not run";
+            }
+            catch (e) {
+                assert.equal(e, "Value must be less than: 5");
+            }
+            try {
+                V.maxExclusive(5, 10);
+                throw "Must not run";
+            }
+            catch (e) {
+                assert.equal(e, "Value must be less than: 5");
+            }
+            try {
+                (V.maxExclusive(5, V.float))(10);
+                throw "Must not run";
+            }
+            catch (e) {
+                assert.equal(e, "Value must be less than: 5");
+            }
+            try {
+                (V.maxExclusive(5))(10);
+                throw "Must not run";
+            }
+            catch (e) {
+                assert.equal(e, "Value must be less than: 5");
             }
         });
         it("between", function () {

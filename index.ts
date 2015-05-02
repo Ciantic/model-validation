@@ -56,8 +56,17 @@ export function required(input: any|ValidationFunction, isNot: any = false): any
 
 export function min(val: number, input?: number|ValidationFunction) : number|ValidationFunction {
     return operator((input, val) => {
+        if (input < val) {
+            throw "Value must be equal or greater than: " + val
+        }
+        return input;
+    }, input, val);
+}
+
+export function minExclusive(val: number, input?: number|ValidationFunction) : number|ValidationFunction {
+    return operator((input, val) => {
         if (input <= val) {
-            throw "Value must be at least: " + val
+            throw "Value must be greater than: " + val
         }
         return input;
     }, input, val);
@@ -65,8 +74,17 @@ export function min(val: number, input?: number|ValidationFunction) : number|Val
 
 export function max(val: number, input?: number|ValidationFunction) : number|ValidationFunction {
     return operator((input, val) => {
+        if (input > val) {
+            throw "Value must be equal or less than: " + val
+        }
+        return input;
+    }, input, val);
+}
+
+export function maxExclusive(val: number, input?: number|ValidationFunction) : number|ValidationFunction {
+    return operator((input, val) => {
         if (input >= val) {
-            throw "Value must not be greater than: " + val
+            throw "Value must be less than: " + val
         }
         return input;
     }, input, val);
