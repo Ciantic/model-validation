@@ -146,7 +146,7 @@ var Validators;
                 res
                     .then(function (i) { return deferred.resolve(i); })
                     .catch(function (er) { return deferred.reject({ "": [er] }); })
-                    .progress(function (n) { return deferred.notify({ "": { progress: n } }); });
+                    .progress(function (n) { return deferred.notify({ "": n }); });
                 return deferred.promise;
             }
             return Q.resolve(res);

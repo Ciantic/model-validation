@@ -5,11 +5,7 @@ export declare type ErrorMessages = {
     [name: string]: string[];
 };
 export declare type NotifyState = {
-    [name: string]: {
-        progress: any;
-        resolved: any;
-        rejected: any;
-    };
+    [name: string]: any;
 };
 export interface ValidationPromise<T> extends Q.Promise<T> {
     then(onFullFill: (v: T) => any): ValidationPromise<T>;

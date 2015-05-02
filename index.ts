@@ -13,11 +13,7 @@ export type ErrorMessages = {
 }
 
 export type NotifyState = {
-    [name: string] : {
-        progress : any,
-        resolved : any,
-        rejected : any
-    }
+    [name: string] : any
 }
 
 export interface ValidationPromise<T> extends Q.Promise<T> {
@@ -176,7 +172,7 @@ export module Validators {
                 (<ValidationPromise<T>> res)
                     .then(i => deferred.resolve(i))
                     .catch(er => deferred.reject({"" : [er]}))
-                    .progress(n => deferred.notify({"" : {progress: n}}));
+                    .progress(n => deferred.notify({"" : n}));
                 return <ValidationPromise<T>> deferred.promise;
             }
             

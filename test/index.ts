@@ -252,7 +252,7 @@ describe("Validations", function() {
                 return p.promise;
             }).validate("")
             .progress(v => {
-                notifies.push(v[""].progress);
+                notifies.push(v[""]);
             })
             .then((res) => {
                 assert.deepEqual(notifies, ["40%", "70%"]);
@@ -339,7 +339,7 @@ describe("Validations", function() {
             }).validate({
                 "file" : "upload.zip"
             }).progress((s) => {
-                notifies.push(s["file"].progress);
+                notifies.push(s["file"]);
             }).then(() => {
                 //def.resolve("");
                 assert.deepEqual(notifies, ["40%", "70%"]);
@@ -625,7 +625,7 @@ describe("Validations", function() {
                     'file' : "upload.zip"
                 }
             }).progress((s) => {
-                notifies.push(s["some.file"].progress);
+                notifies.push(s["some.file"]);
             }).then(() => {
                 assert.deepEqual(notifies, ["40%", "70%"]);
             });
@@ -681,7 +681,7 @@ describe("Validations", function() {
                     return p.promise;
                 })
             .validate(["test"]).progress((s) => {
-                notifies.push(s["[0]"].progress);
+                notifies.push(s["[0]"]);
             }).then(() => {
                 assert.deepEqual(notifies, ["40%", "70%"]);
             });
@@ -726,7 +726,7 @@ describe("Validations", function() {
                     return p.promise;
                 }))
             .validate([["test"]]).progress((s) => {
-                notifies.push(s["[0][0]"].progress);
+                notifies.push(s["[0][0]"]);
             }).then(() => {
                 assert.deepEqual(notifies, ["40%", "70%"]);
             });
@@ -788,7 +788,7 @@ describe("Validations", function() {
                 }))
             })
             .validate(thing).progress((s) => {
-                notifies.push(s["aaa[0].bbb[0].ccc"].progress);
+                notifies.push(s["aaa[0].bbb[0].ccc"]);
             }).then(() => {
                 assert.deepEqual(notifies, ["40%", "70%"]);
             });
