@@ -62,6 +62,7 @@ describe("Validations", function() {
                 assert.equal(f, "Must be a string");
             }
         });
+        
         it("isInteger", () => {
             assert.strictEqual(V.isInteger(3), 3);
             assert.strictEqual(V.isInteger("4"), 4);
@@ -72,6 +73,7 @@ describe("Validations", function() {
                 assert.equal(f, "Must be an integer");
             }
         });
+        
         it("isFloat", () => {
             assert.strictEqual(V.isFloat(123.14), 123.14);
             assert.strictEqual(V.isFloat("123.14"), 123.14);
@@ -82,6 +84,7 @@ describe("Validations", function() {
                 assert.equal(f, "Must be an decimal number");
             }
         });
+        
         it("operator", () => {
             // Curry with function
             var op = V.operator((input, arg1) => {

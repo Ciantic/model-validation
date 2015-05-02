@@ -30,7 +30,6 @@ export interface Validator<O> {
 export type ValidationFunction = <O>(input: O, context?: any) => O;
 
 export function operator(op: (input: any, ...args: any[]) => boolean, input?: any|ValidationFunction, ...args: any[]): any {
-    // Function as argument
     if (_.isFunction(input)) {
         // Curry with function
         return (i: any, c?: any) => {
