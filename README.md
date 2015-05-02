@@ -1,6 +1,8 @@
 # model-validation
 
-Experimental, see test/index.js for specs.
+Experimental, API breaks all the time.
+
+Goal is to create an asynchronous model and data validation framework for immutable models. This means that validators must not mutate the model, or any other inputs they get.
 
 ## Example with JavaScript
 ```javascript
