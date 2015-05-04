@@ -1,81 +1,82 @@
 /// <reference path="../typings/mocha/mocha.d.ts" />
 /// <reference path="../typings/chai/chai.d.ts" />
 /// <reference path="../typings/lodash/lodash.d.ts" />
-require("source-map-support").install();
-var V = require("../index");
-var Q = require("q");
-var chai = require("chai");
-var assert = chai.assert;
+/// <reference path="../typings/source-map-support/source-map-support.d.ts" />
+var source_map_support_1 = require('source-map-support');
+var V = require('../index');
+var Q = require('q');
+var chai_1 = require('chai');
+source_map_support_1.install();
 describe("Validations", function () {
     describe("Validation functions", function () {
         it("required", function () {
-            assert.equal(V.required("yes"), "yes");
+            chai_1.assert.equal(V.required("yes"), "yes");
             try {
                 V.required("");
                 throw "Must not run";
             }
             catch (f) {
-                assert.equal(f, "This field is required");
+                chai_1.assert.equal(f, "This field is required");
             }
         });
         it("required with function", function () {
-            assert.equal(V.required(V.string)("yes"), "yes");
+            chai_1.assert.equal(V.required(V.string)("yes"), "yes");
             try {
                 V.required(function (i, c) {
-                    assert.equal(c, "context");
-                    assert.equal(i, "falzy");
+                    chai_1.assert.equal(c, "context");
+                    chai_1.assert.equal(i, "falzy");
                     return "falzy";
                 }, "falzy")("falzy", "context");
                 throw "Must not run";
             }
             catch (e) {
-                assert.equal(e, "This field is required");
+                chai_1.assert.equal(e, "This field is required");
             }
         });
         it("string", function () {
-            assert.strictEqual(V.string(1.23), "1.23");
-            assert.strictEqual(V.string(undefined), "");
+            chai_1.assert.strictEqual(V.string(1.23), "1.23");
+            chai_1.assert.strictEqual(V.string(undefined), "");
         });
         it("integer", function () {
-            assert.strictEqual(V.integer(3.14), 3);
-            assert.strictEqual(V.integer("3.14"), 3);
-            assert.strictEqual(V.integer(undefined), 0);
+            chai_1.assert.strictEqual(V.integer(3.14), 3);
+            chai_1.assert.strictEqual(V.integer("3.14"), 3);
+            chai_1.assert.strictEqual(V.integer(undefined), 0);
         });
         it("float", function () {
-            assert.strictEqual(V.float(3.14), 3.14);
-            assert.strictEqual(V.float("3.14"), 3.14);
-            assert.strictEqual(V.float(undefined), 0);
+            chai_1.assert.strictEqual(V.float(3.14), 3.14);
+            chai_1.assert.strictEqual(V.float("3.14"), 3.14);
+            chai_1.assert.strictEqual(V.float(undefined), 0);
         });
         it("isString", function () {
-            assert.strictEqual(V.isString("word"), "word");
+            chai_1.assert.strictEqual(V.isString("word"), "word");
             try {
                 V.isString(3.14);
                 throw "Must not run";
             }
             catch (f) {
-                assert.equal(f, "Must be a string");
+                chai_1.assert.equal(f, "Must be a string");
             }
         });
         it("isInteger", function () {
-            assert.strictEqual(V.isInteger(3), 3);
-            assert.strictEqual(V.isInteger("4"), 4);
+            chai_1.assert.strictEqual(V.isInteger(3), 3);
+            chai_1.assert.strictEqual(V.isInteger("4"), 4);
             try {
                 V.isInteger(3.14);
                 throw "Must not run";
             }
             catch (f) {
-                assert.equal(f, "Must be an integer");
+                chai_1.assert.equal(f, "Must be an integer");
             }
         });
         it("isFloat", function () {
-            assert.strictEqual(V.isFloat(123.14), 123.14);
-            assert.strictEqual(V.isFloat("123.14"), 123.14);
+            chai_1.assert.strictEqual(V.isFloat(123.14), 123.14);
+            chai_1.assert.strictEqual(V.isFloat("123.14"), 123.14);
             try {
                 V.isFloat("a");
                 throw "Must not run";
             }
             catch (f) {
-                assert.equal(f, "Must be an decimal number");
+                chai_1.assert.equal(f, "Must be an decimal number");
             }
         });
         it("operator", function () {
@@ -87,123 +88,123 @@ describe("Validations", function () {
             }, function (i, c) {
                 return i + " " + c;
             }, "fail");
-            assert.strictEqual(op("test", "context"), "test context");
+            chai_1.assert.strictEqual(op("test", "context"), "test context");
             var op = V.operator(function (input, arg1) {
                 if (input == arg1) {
                     throw "Failure";
                 }
                 return input;
             }, undefined, "fail");
-            assert.strictEqual(op("test"), "test");
+            chai_1.assert.strictEqual(op("test"), "test");
             try {
                 op("fail");
                 throw "Must not run";
             }
             catch (e) {
-                assert.equal(e, "Failure");
+                chai_1.assert.equal(e, "Failure");
             }
             var op = V.operator(function (input, arg1) {
                 return input;
             }, "test");
-            assert.strictEqual(op, "test");
+            chai_1.assert.strictEqual(op, "test");
         });
         it("min", function () {
-            assert.strictEqual(V.min(5, 5), 5);
-            assert.strictEqual(V.min(5, 100), 100);
+            chai_1.assert.strictEqual(V.min(5, 5), 5);
+            chai_1.assert.strictEqual(V.min(5, 100), 100);
             try {
                 V.min(5, 4);
                 throw "Must not run";
             }
             catch (e) {
-                assert.equal(e, "Value must be equal or greater than: 5");
+                chai_1.assert.equal(e, "Value must be equal or greater than: 5");
             }
         });
         it("minExclusive", function () {
-            assert.strictEqual(V.minExclusive(5, 100), 100);
+            chai_1.assert.strictEqual(V.minExclusive(5, 100), 100);
             try {
                 V.minExclusive(5, 5);
                 throw "Must not run";
             }
             catch (e) {
-                assert.equal(e, "Value must be greater than: 5");
+                chai_1.assert.equal(e, "Value must be greater than: 5");
             }
             try {
                 V.minExclusive(5, 4);
                 throw "Must not run";
             }
             catch (e) {
-                assert.equal(e, "Value must be greater than: 5");
+                chai_1.assert.equal(e, "Value must be greater than: 5");
             }
         });
         it("max", function () {
-            assert.strictEqual(V.max(5, 5), 5);
-            assert.strictEqual(V.max(100, 5), 5);
+            chai_1.assert.strictEqual(V.max(5, 5), 5);
+            chai_1.assert.strictEqual(V.max(100, 5), 5);
             try {
                 V.max(5, 10);
                 throw "Must not run";
             }
             catch (e) {
-                assert.equal(e, "Value must be equal or less than: 5");
+                chai_1.assert.equal(e, "Value must be equal or less than: 5");
             }
         });
         it("maxExclusive", function () {
-            assert.strictEqual(V.maxExclusive(5, 4), 4);
+            chai_1.assert.strictEqual(V.maxExclusive(5, 4), 4);
             try {
                 V.maxExclusive(5, 5);
                 throw "Must not run";
             }
             catch (e) {
-                assert.equal(e, "Value must be less than: 5");
+                chai_1.assert.equal(e, "Value must be less than: 5");
             }
             try {
                 V.maxExclusive(5, 100);
                 throw "Must not run";
             }
             catch (e) {
-                assert.equal(e, "Value must be less than: 5");
+                chai_1.assert.equal(e, "Value must be less than: 5");
             }
         });
         it("between", function () {
-            assert.strictEqual(V.between(50, 100, 50), 50);
-            assert.strictEqual(V.between(50, 100, 100), 100);
-            assert.strictEqual(V.between(50, 100, 70), 70);
+            chai_1.assert.strictEqual(V.between(50, 100, 50), 50);
+            chai_1.assert.strictEqual(V.between(50, 100, 100), 100);
+            chai_1.assert.strictEqual(V.between(50, 100, 70), 70);
             try {
                 V.between(50, 100, 10);
                 throw "Must not run";
             }
             catch (e) {
-                assert.equal(e, "Value must be between 50 and 100");
+                chai_1.assert.equal(e, "Value must be between 50 and 100");
             }
             try {
                 V.between(50, 100, 150);
                 throw "Must not run";
             }
             catch (e) {
-                assert.equal(e, "Value must be between 50 and 100");
+                chai_1.assert.equal(e, "Value must be between 50 and 100");
             }
         });
         it("betweenExclusive", function () {
-            assert.strictEqual(V.betweenExclusive(50, 100, 70), 70);
+            chai_1.assert.strictEqual(V.betweenExclusive(50, 100, 70), 70);
             try {
                 V.betweenExclusive(50, 100, 50);
                 throw "Must not run";
             }
             catch (e) {
-                assert.equal(e, "Value must exclusively be between 50 and 100");
+                chai_1.assert.equal(e, "Value must exclusively be between 50 and 100");
             }
             try {
                 V.betweenExclusive(50, 100, 100);
                 throw "Must not run";
             }
             catch (e) {
-                assert.equal(e, "Value must exclusively be between 50 and 100");
+                chai_1.assert.equal(e, "Value must exclusively be between 50 and 100");
             }
             try {
                 V.betweenExclusive(50, 100, 10);
                 throw "Must not run";
             }
             catch (e) {
-                assert.equal(e, "Value must exclusively be between 50 and 100");
+                chai_1.assert.equal(e, "Value must exclusively be between 50 and 100");
             }
         });
     });
@@ -216,7 +217,7 @@ describe("Validations", function () {
                 }, 10);
                 return deferred.promise;
             }).validate("").then(function (res) {
-                assert.equal(res, "done");
+                chai_1.assert.equal(res, "done");
             });
         });
         it("should fail with deferred error", function () {
@@ -227,7 +228,7 @@ describe("Validations", function () {
                 }, 10);
                 return deferred.promise;
             }).validate("").catch(function (res) {
-                assert.deepEqual(res, { "": ["fail"] });
+                chai_1.assert.deepEqual(res, { "": ["fail"] });
             });
         });
         it("should progress with deferred", function () {
@@ -249,7 +250,7 @@ describe("Validations", function () {
                 notifies.push(v[""]);
             })
                 .then(function (res) {
-                assert.deepEqual(notifies, ["40%", "70%"]);
+                chai_1.assert.deepEqual(notifies, ["40%", "70%"]);
             });
         });
     });
@@ -265,7 +266,7 @@ describe("Validations", function () {
                 "name": V.required(V.string),
                 "age": V.required(V.float),
             }).validatePath(obj, "name", "Cameleont").then(function (res) {
-                assert.deepEqual(res, {
+                chai_1.assert.deepEqual(res, {
                     id: 123,
                     name: "Cameleont",
                     age: 3.14
@@ -283,7 +284,7 @@ describe("Validations", function () {
                 "name": V.required(V.string),
                 "age": V.required(V.float),
             }).validatePath(obj, "name", "").catch(function (err) {
-                assert.deepEqual(err, { "name": ["This field is required"] });
+                chai_1.assert.deepEqual(err, { "name": ["This field is required"] });
             });
         });
         it("should be able to access object", function () {
@@ -295,7 +296,7 @@ describe("Validations", function () {
                 "product": "pizza",
                 "price": 0
             }).then(function (res) {
-                assert.deepEqual(res, {
+                chai_1.assert.deepEqual(res, {
                     "product": "pizza",
                     "price": 7.95
                 });
@@ -310,7 +311,7 @@ describe("Validations", function () {
                 "product": "Orange",
                 "price": 0
             }).catch(function (errs) {
-                assert.deepEqual(errs, { "price": ["Orange is not a pizza"] });
+                chai_1.assert.deepEqual(errs, { "price": ["Orange is not a pizza"] });
             });
         });
         it("should notify progress by path", function () {
@@ -334,7 +335,7 @@ describe("Validations", function () {
             }).progress(function (s) {
                 notifies.push(s["file"]);
             }).then(function () {
-                assert.deepEqual(notifies, ["40%", "70%"]);
+                chai_1.assert.deepEqual(notifies, ["40%", "70%"]);
             });
         });
     });
@@ -350,7 +351,7 @@ describe("Validations", function () {
                 "name": V.required(V.string),
                 "age": V.required(V.float),
             }).validate(obj).then(function (res) {
-                assert.deepEqual(res, obj);
+                chai_1.assert.deepEqual(res, obj);
             });
         });
         it("should raise all errors", function () {
@@ -364,7 +365,7 @@ describe("Validations", function () {
                 "name": V.required(V.string),
                 "age": V.required(V.float),
             }).validate(obj).catch(function (errs) {
-                assert.deepEqual(errs, {
+                chai_1.assert.deepEqual(errs, {
                     "age": ["This field is required"],
                     "name": ["This field is required"]
                 });
@@ -382,7 +383,7 @@ describe("Validations", function () {
                 "name": V.required(V.string),
                 "age": V.required(V.float),
             }).validate(obj).then(function (res) {
-                assert.deepEqual(res, {
+                chai_1.assert.deepEqual(res, {
                     id: 5,
                     name: "John Doe",
                     age: 30
@@ -398,7 +399,7 @@ describe("Validations", function () {
                 "name": V.string,
                 "age": V.float,
             }).validate(obj).then(function (res) {
-                assert.deepEqual(res, {
+                chai_1.assert.deepEqual(res, {
                     id: 0,
                     name: "",
                     age: 0
@@ -411,7 +412,7 @@ describe("Validations", function () {
                 "name": V.string,
                 "age": V.float,
             }).validate("foo").then(function (res) {
-                assert.deepEqual(res, {
+                chai_1.assert.deepEqual(res, {
                     id: 0,
                     name: "",
                     age: 0
@@ -438,7 +439,7 @@ describe("Validations", function () {
                 "street": "Backalley 321",
                 "city": "Otherville"
             }).then(function (res) {
-                assert.deepEqual(res, {
+                chai_1.assert.deepEqual(res, {
                     name: "John Doe",
                     address: {
                         "street": "Backalley 321",
@@ -462,7 +463,7 @@ describe("Validations", function () {
                     "city": V.required(V.string)
                 })
             }).validatePath(obj, "address.city", "Otherville").then(function (res) {
-                assert.deepEqual(res, {
+                chai_1.assert.deepEqual(res, {
                     name: "John Doe",
                     address: {
                         "street": "Homestreet 123",
@@ -474,7 +475,7 @@ describe("Validations", function () {
         it("should work with a dot notation even when zero is key", function () {
             return V.object({ "0": V.string })
                 .validatePath({ "0": "Okay" }, "0", "Something else").then(function (res) {
-                assert.deepEqual(res, { "0": "Something else" });
+                chai_1.assert.deepEqual(res, { "0": "Something else" });
             });
         });
         it("should raise nested errors with a dot notation", function () {
@@ -495,7 +496,7 @@ describe("Validations", function () {
                 "street": "",
                 "city": ""
             }).catch(function (errs) {
-                assert.deepEqual(errs, {
+                chai_1.assert.deepEqual(errs, {
                     "address.street": ["This field is required"],
                     "address.city": ["This field is required"]
                 });
@@ -516,7 +517,7 @@ describe("Validations", function () {
                     })
                 })
             }).validatePath(obj, "aaa.bbb.ccc", 0).catch(function (errs) {
-                assert.deepEqual(errs, {
+                chai_1.assert.deepEqual(errs, {
                     "aaa.bbb.ccc": ["This field is required"],
                 });
             });
@@ -536,7 +537,7 @@ describe("Validations", function () {
                     })
                 })
             }).validate(obj).catch(function (errs) {
-                assert.deepEqual(errs, {
+                chai_1.assert.deepEqual(errs, {
                     "aaa.bbb.ccc": ["This field is required"],
                 });
             });
@@ -549,7 +550,7 @@ describe("Validations", function () {
                     "city": V.string
                 }),
             }).validate("foo").then(function (res) {
-                assert.deepEqual(res, {
+                chai_1.assert.deepEqual(res, {
                     id: 0,
                     name: "",
                     address: {
@@ -570,7 +571,7 @@ describe("Validations", function () {
                 "name": "Test",
                 "address": ""
             }).then(function (res) {
-                assert.deepEqual(res, {
+                chai_1.assert.deepEqual(res, {
                     id: 5,
                     name: "Test",
                     address: {
@@ -604,7 +605,7 @@ describe("Validations", function () {
             }).progress(function (s) {
                 notifies.push(s["some.file"]);
             }).then(function () {
-                assert.deepEqual(notifies, ["40%", "70%"]);
+                chai_1.assert.deepEqual(notifies, ["40%", "70%"]);
             });
         });
     });
@@ -612,7 +613,7 @@ describe("Validations", function () {
         it("of simple functions should work", function () {
             var arr = ["first", "second"];
             return V.array(V.string).validate(arr).then(function (val) {
-                assert.deepEqual(val, arr);
+                chai_1.assert.deepEqual(val, arr);
             });
         });
         it("of objects validation should work", function () {
@@ -628,13 +629,13 @@ describe("Validations", function () {
                 "name": function (i) { return V.required(V.string(i)); },
                 "age": V.float
             })).validate(objs).then(function (val) {
-                assert.deepEqual(val, objs);
+                chai_1.assert.deepEqual(val, objs);
             });
         });
         it("should create missing fields with wrong input", function () {
             return V.array(V.string).validate("foo")
                 .then(function (res) {
-                assert.deepEqual(res, []);
+                chai_1.assert.deepEqual(res, []);
             });
         });
         it("should notify progress by path", function () {
@@ -655,13 +656,13 @@ describe("Validations", function () {
                 .validate(["test"]).progress(function (s) {
                 notifies.push(s["[0]"]);
             }).then(function () {
-                assert.deepEqual(notifies, ["40%", "70%"]);
+                chai_1.assert.deepEqual(notifies, ["40%", "70%"]);
             });
         });
         it("of simple functios should raise errors", function () {
             var arr = ["", ""];
             return V.array(function (i) { return V.required(V.string(i)); }).validate(arr).catch(function (errs) {
-                assert.deepEqual(errs, {
+                chai_1.assert.deepEqual(errs, {
                     "[0]": ["This field is required"],
                     "[1]": ["This field is required"]
                 });
@@ -671,7 +672,7 @@ describe("Validations", function () {
             var arr = [[["", ""]]];
             return V.array(V.array(V.array(function (i) { return V.required(V.string(i)); })))
                 .validate(arr).catch(function (errs) {
-                assert.deepEqual(errs, {
+                chai_1.assert.deepEqual(errs, {
                     "[0][0][0]": ["This field is required"],
                     "[0][0][1]": ["This field is required"]
                 });
@@ -695,7 +696,7 @@ describe("Validations", function () {
                 .validate([["test"]]).progress(function (s) {
                 notifies.push(s["[0][0]"]);
             }).then(function () {
-                assert.deepEqual(notifies, ["40%", "70%"]);
+                chai_1.assert.deepEqual(notifies, ["40%", "70%"]);
             });
         });
     });
@@ -709,7 +710,7 @@ describe("Validations", function () {
                     }))
                 }))
             }).validate(thing).then(function (val) {
-                assert.deepEqual(val, thing);
+                chai_1.assert.deepEqual(val, thing);
             });
         });
         it("should raise errors", function () {
@@ -721,7 +722,7 @@ describe("Validations", function () {
                     }))
                 }))
             }).validate(thing).catch(function (errs) {
-                assert.deepEqual(errs, {
+                chai_1.assert.deepEqual(errs, {
                     "aaa[0].bbb[0].ccc": ["This field is required"]
                 });
             });
@@ -751,7 +752,7 @@ describe("Validations", function () {
                 .validate(thing).progress(function (s) {
                 notifies.push(s["aaa[0].bbb[0].ccc"]);
             }).then(function () {
-                assert.deepEqual(notifies, ["40%", "70%"]);
+                chai_1.assert.deepEqual(notifies, ["40%", "70%"]);
             });
         });
     });

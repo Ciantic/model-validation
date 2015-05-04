@@ -16,6 +16,9 @@
     },
     "chai/chai.d.ts": {
       "commit": "61d066fef5a1ac9e2389b51b9cf88746b7bbfde9"
+    },
+    "source-map-support/source-map-support.d.ts": {
+      "commit": "f3244190e20af6901e865f4cc58127d19216baa1"
     }
   }
 }

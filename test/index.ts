@@ -1,14 +1,14 @@
 /// <reference path="../typings/mocha/mocha.d.ts" />
 /// <reference path="../typings/chai/chai.d.ts" />
 /// <reference path="../typings/lodash/lodash.d.ts" />
+/// <reference path="../typings/source-map-support/source-map-support.d.ts" />
 
-declare var require: any;
-require("source-map-support").install();
+import { install as enableSourceMaps } from 'source-map-support';
+import * as V from '../index';
+import * as Q from 'q';
+import { assert } from 'chai';
 
-import V = require("../index");
-import Q = require("q");
-import chai = require("chai");
-var assert = chai.assert;
+enableSourceMaps();
 
 describe("Validations", function() {
     describe("Validation functions", function() {

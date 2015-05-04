@@ -4,8 +4,8 @@
  */
 /// <reference path="typings/lodash/lodash.d.ts" />
 /// <reference path="typings/q/Q.d.ts" />
-var _ = require("lodash");
-var Q = require("q");
+var _ = require('lodash');
+var Q = require('q');
 function operator(op, input) {
     var args = [];
     for (var _i = 2; _i < arguments.length; _i++) {

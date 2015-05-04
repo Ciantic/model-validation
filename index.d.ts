@@ -1,6 +1,6 @@
 /// <reference path="typings/lodash/lodash.d.ts" />
 /// <reference path="typings/q/Q.d.ts" />
-import Q = require("q");
+import * as Q from 'q';
 export declare type ErrorMessages = {
     [name: string]: string[];
 };

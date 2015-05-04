@@ -27,6 +27,7 @@
         "./typings/lodash/lodash.d.ts",
         "./typings/mocha/mocha.d.ts",
         "./typings/q/Q.d.ts",
+        "./typings/source-map-support/source-map-support.d.ts",
         "./typings/tsd.d.ts"
     ]
 }

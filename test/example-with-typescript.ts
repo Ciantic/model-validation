@@ -2,12 +2,12 @@ import V = require("../index");
 
 interface Address {
     city : string
-    address : string
+    street : string
 }
 
 var addressValidator = V.object<Address>({
     city : V.required(V.string),
-    address : V.string,
+    street : V.string,
 });
 
 interface User {
@@ -30,7 +30,7 @@ userValidator.validate({
     email : "jack@example.com",
     address: {
         city : "Philly",
-        address : "Homestreet 123"
+        street : "Homestreet 123"
     }
 }).then((v) => {
     // v is validated object

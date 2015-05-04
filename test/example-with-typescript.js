@@ -1,7 +1,7 @@
 var V = require("../index");
 var addressValidator = V.object({
     city: V.required(V.string),
-    address: V.string,
+    street: V.string,
 });
 var userValidator = V.object({
     id: V.integer,
@@ -15,7 +15,7 @@ userValidator.validate({
     email: "jack@example.com",
     address: {
         city: "Philly",
-        address: "Homestreet 123"
+        street: "Homestreet 123"
     }
 }).then(function (v) {
 }).catch(function (errs) {
