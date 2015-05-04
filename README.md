@@ -15,7 +15,7 @@ var userValidator = V.object({
     email : V.string,
     address : V.object({
         city : V.required(V.string),
-        address : V.string,
+        street : V.string,
     })
 });
 
@@ -26,13 +26,14 @@ userValidator.validate({
     email : "jack@example.com",
     address: {
         city : "Philly",
-        address : "Homestreet 123"
+        street : "Homestreet 123"
     }
 }).then(function(v) {
     // v is validated object
 }).catch(function(errs) {
     // errs is object of errors {[name: string] : string[]}
 });
+
 
 ```
 
@@ -44,12 +45,12 @@ import V = require("model-validation");
 
 interface Address {
     city : string
-    address : string
+    street : string
 }
 
 var addressValidator = V.object<Address>({
     city : V.required(V.string),
-    address : V.string,
+    street : V.string,
 });
 
 interface User {
@@ -72,7 +73,7 @@ userValidator.validate({
     email : "jack@example.com",
     address: {
         city : "Philly",
-        address : "Homestreet 123"
+        street : "Homestreet 123"
     }
 }).then((v) => {
     // v is validated object
