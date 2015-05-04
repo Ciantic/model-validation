@@ -1,4 +1,4 @@
-var V = require("../index");
+var V = require('../index');
 var addressValidator = V.object({
     city: V.required(V.string),
     street: V.string,

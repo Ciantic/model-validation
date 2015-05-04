@@ -1,4 +1,4 @@
-import V = require("../index");
+import * as V from '../index';
 
 interface Address {
     city : string

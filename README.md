@@ -41,7 +41,7 @@ userValidator.validate({
 
 ```typescript
 /// <reference path="node_modules/model-validation/index.d.ts" />
-import V = require("model-validation");
+import * as V from 'model-validation';
 
 interface Address {
     city : string
