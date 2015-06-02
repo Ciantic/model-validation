@@ -2,8 +2,8 @@
  * Copyright (C) Jari Pennanen, 2015
  * See LICENSE for copying
  */
-/// <reference path="typings/lodash/lodash.d.ts" />
-/// <reference path="typings/q/Q.d.ts" />
+/// <reference path="./typings/lodash/lodash.d.ts" />
+/// <reference path="./typings/q/Q.d.ts" />
 
 import * as _ from 'lodash';
 import * as Q from 'q';

@@ -2,8 +2,8 @@
  * Copyright (C) Jari Pennanen, 2015
  * See LICENSE for copying
  */
-/// <reference path="typings/lodash/lodash.d.ts" />
-/// <reference path="typings/q/Q.d.ts" />
+/// <reference path="./typings/lodash/lodash.d.ts" />
+/// <reference path="./typings/q/Q.d.ts" />
 var _ = require('lodash');
 var Q = require('q');
 function operator(op, input) {
