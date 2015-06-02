@@ -14,7 +14,7 @@ export interface ValidationPromise<T> extends Q.Promise<T> {
 }
 export interface Validator<O> {
     validate(value: O): ValidationPromise<O>;
-    validatePath<T>(oldValue: T, path: string, newValue?: any, context?: any): ValidationPromise<T>;
+    validatePath<T>(path: string, oldValue: T, newValue?: any, context?: any): ValidationPromise<T>;
 }
 export declare type ValidationFunction = <O>(input: O, context?: any) => O;
 export declare function operator(op: (input: any, ...args: any[]) => boolean, input?: any | ValidationFunction, ...args: any[]): any;
@@ -40,7 +40,7 @@ export declare module Validators {
         func: ValidationFunction;
         constructor(func: ValidationFunction, parent?: any);
         private _callFunc<T>(val, context?);
-        validatePath<T>(oldValue: T, path: string, newValue?: any, context?: any): ValidationPromise<T>;
+        validatePath<T>(path: string, oldValue: T, newValue?: any, context?: any): ValidationPromise<T>;
         validate(value: O): ValidationPromise<O>;
     }
     class ObjectValidator<O extends Object> implements Validator<O> {
@@ -50,13 +50,13 @@ export declare module Validators {
         constructor(fields: {
             [name: string]: Validator<any>;
         });
-        validatePath<T extends Object>(oldValue: T, path: string, newValue?: any, context?: any): ValidationPromise<T>;
+        validatePath<T extends Object>(path: string, oldValue: T, newValue?: any, context?: any): ValidationPromise<T>;
         validate(object: O): ValidationPromise<O>;
     }
     class ArrayValidator<O> implements Validator<O[]> {
         validator: Validator<O>;
         constructor(validator: Validator<O>);
-        validatePath<T>(oldValue: T, path: string, newValue?: any, context?: any): ValidationPromise<T>;
+        validatePath<T>(path: string, oldValue: T, newValue?: any, context?: any): ValidationPromise<T>;
         validate(arr: O[]): ValidationPromise<O[]>;
     }
 }

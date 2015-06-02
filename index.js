@@ -169,7 +169,7 @@ var Validators;
             }
             return Q.resolve(res);
         };
-        FuncValidator.prototype.validatePath = function (oldValue, path, newValue, context) {
+        FuncValidator.prototype.validatePath = function (path, oldValue, newValue, context) {
             if (path !== "") {
                 return Q.reject({ "": ["Function validator does not recognize this path:" + path] });
             }
@@ -186,7 +186,7 @@ var Validators;
         function ObjectValidator(fields) {
             this.fields = fields;
         }
-        ObjectValidator.prototype.validatePath = function (oldValue, path, newValue, context) {
+        ObjectValidator.prototype.validatePath = function (path, oldValue, newValue, context) {
             if (path === "") {
                 return this.validate(newValue);
             }
@@ -195,7 +195,7 @@ var Validators;
                 return Q.reject({ "": "Object validator does not recognize this path: " + path });
             }
             var deferred = Q.defer(), field = m[1], remaining = m[2], fieldValidator = this.fields[field], oldFieldValue = oldValue[field];
-            fieldValidator.validatePath(oldFieldValue, remaining, newValue, context).then(function (res) {
+            fieldValidator.validatePath(remaining, oldFieldValue, newValue, context).then(function (res) {
                 var fieldErrors = {}, value = _.cloneDeep(oldValue);
                 value[field] = res;
                 deferred.resolve(value);
@@ -220,7 +220,7 @@ var Validators;
             }
             var self = this, defer = Q.defer(), dfields = [], copy = _.pick(_.cloneDeep(object), _.keys(this.fields)), errors = {};
             _.each(this.fields, function (v, k) {
-                var p = self.validatePath(object, k, object[k], object);
+                var p = self.validatePath(k, object, object[k], object);
                 dfields.push(p);
                 p.then(function (res) {
                     copy[k] = res[k];
@@ -245,7 +245,7 @@ var Validators;
         function ArrayValidator(validator) {
             this.validator = validator;
         }
-        ArrayValidator.prototype.validatePath = function (oldValue, path, newValue, context) {
+        ArrayValidator.prototype.validatePath = function (path, oldValue, newValue, context) {
             if (path === "") {
                 return this.validate(newValue);
             }
@@ -254,7 +254,7 @@ var Validators;
                 throw "Array validator does not recognize this path: " + path;
             }
             var deferred = Q.defer(), field = m[1], remaining = m[2];
-            this.validator.validatePath(oldValue, remaining, newValue, context).then(function (res) {
+            this.validator.validatePath(remaining, oldValue, newValue, context).then(function (res) {
                 deferred.resolve(res);
             }).catch(function (err) {
                 var fieldErrors = {}, indexAccessor = "[" + field + "]";
@@ -277,7 +277,7 @@ var Validators;
             }
             var self = this, defer = Q.defer(), dfields = [], copy = [], errors = {};
             _.each(arr, function (v, k) {
-                var p = self.validatePath(arr[k], "[" + k + "]", v, arr);
+                var p = self.validatePath("[" + k + "]", arr[k], v, arr);
                 dfields.push(p);
                 p.then(function (res) {
                     copy[k] = res;

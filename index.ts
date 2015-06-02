@@ -24,7 +24,7 @@ export interface ValidationPromise<T> extends Q.Promise<T> {
 
 export interface Validator<O> {
     validate(value: O): ValidationPromise<O>;
-    validatePath<T>(oldValue: T, path: string, newValue?: any, context?: any): ValidationPromise<T>;
+    validatePath<T>(path: string, oldValue: T, newValue?: any, context?: any): ValidationPromise<T>;
 }
 
 export type ValidationFunction = <O>(input: O, context?: any) => O;
@@ -196,7 +196,7 @@ export module Validators {
             return <ValidationPromise<T>> Q.resolve(res);
         }
         
-        validatePath<T>(oldValue: T, path: string, newValue?: any, context?: any):
+        validatePath<T>(path: string, oldValue: T, newValue?: any, context?: any):
             ValidationPromise<T>
         {
             if (path !== "") {
@@ -219,7 +219,7 @@ export module Validators {
             this.fields = fields;
         }
         
-        validatePath<T extends Object>(oldValue: T, path: string, newValue?: any, context?: any):
+        validatePath<T extends Object>(path: string, oldValue: T, newValue?: any, context?: any):
             ValidationPromise<T>
         {
             if (path === "") {
@@ -236,7 +236,7 @@ export module Validators {
                 fieldValidator = <Validator<any>> this.fields[field],
                 oldFieldValue = (<any> oldValue)[field];
 
-            fieldValidator.validatePath(oldFieldValue, remaining, newValue, context).then((res) => {
+            fieldValidator.validatePath(remaining, oldFieldValue, newValue, context).then((res) => {
                 var fieldErrors: ErrorMessages = {},
                     value = _.cloneDeep(oldValue);
                 (<any> value)[field] = res;
@@ -269,7 +269,7 @@ export module Validators {
                 errors: ErrorMessages = {};
             
             _.each(this.fields, function(v, k) {
-                var p = self.validatePath(object, k, (<any> object)[k], object);
+                var p = self.validatePath(k, object, (<any> object)[k], object);
                 dfields.push(p);
                 p.then((res) => {
                     (<any> copy)[k] = (<any> res)[k];
@@ -300,7 +300,7 @@ export module Validators {
             this.validator = validator;
         }
         
-        validatePath<T>(oldValue: T, path: string, newValue?: any, context?: any):
+        validatePath<T>(path: string, oldValue: T, newValue?: any, context?: any):
             ValidationPromise<T>
         {
             if (path === "") {
@@ -315,7 +315,7 @@ export module Validators {
             var deferred = Q.defer<T>(),
                 [, field, remaining] = m;
             
-            this.validator.validatePath(oldValue, remaining, newValue, context).then((res) => {
+            this.validator.validatePath(remaining, oldValue, newValue, context).then((res) => {
                 deferred.resolve(res);
             }).catch((err) => {
                 var fieldErrors: ErrorMessages = {},
@@ -347,7 +347,7 @@ export module Validators {
             
             _.each(arr, function(v, k) {
                 
-                var p = self.validatePath<O>(arr[k], "[" + k + "]", v, arr);
+                var p = self.validatePath<O>("[" + k + "]", arr[k], v, arr);
                 dfields.push(p);
                 p.then((res) => {
                     copy[k] = res;

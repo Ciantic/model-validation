@@ -265,7 +265,7 @@ describe("Validations", function () {
                 "id": V.integer,
                 "name": V.required(V.string),
                 "age": V.required(V.float),
-            }).validatePath(obj, "name", "Cameleont").then(function (res) {
+            }).validatePath("name", obj, "Cameleont").then(function (res) {
                 chai_1.assert.deepEqual(res, {
                     id: 123,
                     name: "Cameleont",
@@ -283,7 +283,7 @@ describe("Validations", function () {
                 "id": V.integer,
                 "name": V.required(V.string),
                 "age": V.required(V.float),
-            }).validatePath(obj, "name", "").catch(function (err) {
+            }).validatePath("name", obj, "").catch(function (err) {
                 chai_1.assert.deepEqual(err, { "name": ["This field is required"] });
             });
         });
@@ -435,7 +435,7 @@ describe("Validations", function () {
                     "street": V.string,
                     "city": V.required(V.string)
                 })
-            }).validatePath(obj, "address", {
+            }).validatePath("address", obj, {
                 "street": "Backalley 321",
                 "city": "Otherville"
             }).then(function (res) {
@@ -462,7 +462,7 @@ describe("Validations", function () {
                     "street": V.required(V.string),
                     "city": V.required(V.string)
                 })
-            }).validatePath(obj, "address.city", "Otherville").then(function (res) {
+            }).validatePath("address.city", obj, "Otherville").then(function (res) {
                 chai_1.assert.deepEqual(res, {
                     name: "John Doe",
                     address: {
@@ -474,7 +474,7 @@ describe("Validations", function () {
         });
         it("should work with a dot notation even when zero is key", function () {
             return V.object({ "0": V.string })
-                .validatePath({ "0": "Okay" }, "0", "Something else").then(function (res) {
+                .validatePath("0", { "0": "Okay" }, "Something else").then(function (res) {
                 chai_1.assert.deepEqual(res, { "0": "Something else" });
             });
         });
@@ -492,7 +492,7 @@ describe("Validations", function () {
                     "street": V.required(V.string),
                     "city": V.required(V.string)
                 })
-            }).validatePath(obj, "address", {
+            }).validatePath("address", obj, {
                 "street": "",
                 "city": ""
             }).catch(function (errs) {
@@ -516,7 +516,7 @@ describe("Validations", function () {
                         "ccc": V.required(V.integer)
                     })
                 })
-            }).validatePath(obj, "aaa.bbb.ccc", 0).catch(function (errs) {
+            }).validatePath("aaa.bbb.ccc", obj, 0).catch(function (errs) {
                 chai_1.assert.deepEqual(errs, {
                     "aaa.bbb.ccc": ["This field is required"],
                 });
