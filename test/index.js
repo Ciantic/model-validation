@@ -210,7 +210,7 @@ describe("Validations", function () {
     });
     describe("Function validation", function () {
         it("should work with deferred result", function () {
-            return new V.Validators.FuncValidator(function (i) {
+            return V.func(function (i) {
                 var deferred = Q.defer();
                 setTimeout(function () {
                     deferred.resolve("done");
@@ -221,7 +221,7 @@ describe("Validations", function () {
             });
         });
         it("should fail with deferred error", function () {
-            return new V.Validators.FuncValidator(function (i) {
+            return V.func(function (i) {
                 var deferred = Q.defer();
                 setTimeout(function () {
                     deferred.reject("fail");
@@ -233,7 +233,7 @@ describe("Validations", function () {
         });
         it("should progress with deferred", function () {
             var notifies = [];
-            return new V.Validators.FuncValidator(function (i) {
+            return V.func(function (i) {
                 var p = Q.defer();
                 setTimeout(function () {
                     p.notify("40%");
